@@ -1,0 +1,654 @@
+{
+  "phases": [
+    {
+      "name": "Phase 1: Secure VM Lifecycle",
+      "components": [
+        {
+          "name": "Wiring Layer (Component 0)",
+          "tasks": [
+            {
+              "content": "Implement Config loading and validation",
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "content": "Implement Assemble() function with interface wiring",
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "content": "Implement SQLite migration runner and directory structure",
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "content": "Implement concurrency serialization (per-session mutexes)",
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "content": "Implement rollback failure handling",
+              "status": "pending",
+              "priority": "high"
+            }
+          ]
+        },
+        {
+          "name": "VM Manager (Component 1)",
+          "tasks": [
+            {
+              "content": "Define LibvirtClient interface and shell-out fallback",
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "content": "Implement image import/list/inspect/delete",
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "content": "Implement overlay disk creation (qcow2 copy-on-write)",
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "content": "Implement cloud-init seed ISO generation",
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "content": "Implement domain XML generation with typed struct",
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "content": "Implement VM start/stop/destroy lifecycle",
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "content": "Implement VM state query and connection info",
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "content": "Implement VM reconciliation and orphan reporting",
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "content": "Add domain.xml struct example to LLD",
+              "status": "pending",
+              "priority": "medium"
+            }
+          ]
+        },
+        {
+          "name": "Observability - Core (Component 7)",
+          "tasks": [
+            {
+              "content": "Implement structured logging with correlation IDs",
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "content": "Implement SQLite audit event store with WAL mode",
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "content": "Implement audit event persistence and query",
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "content": "Add logging vs audit failure semantics",
+              "status": "pending",
+              "priority": "medium"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Phase 2: Session Model",
+      "components": [
+        {
+          "name": "Shared Folder Manager (Component 5)",
+          "tasks": [
+            {
+              "content": "Implement per-session host directory creation (0700)",
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "content": "Implement virtiofs detection (via libvirt capabilities)",
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "content": "Implement 9p fallback mechanism",
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "content": "Implement mount config injection for cloud-init",
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "content": "Implement path traversal prevention",
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "content": "Implement mount cleanup on destroy",
+              "status": "pending",
+              "priority": "high"
+            }
+          ]
+        },
+        {
+          "name": "Auth Proxy Manager (Component 4)",
+          "tasks": [
+            {
+              "content": "Implement per-session proxy start (virtio-vsock)",
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "content": "Implement session identity validation",
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "content": "Implement dummy-to-real credential replacement",
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "content": "Implement request forwarding and response passthrough",
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "content": "Add APIKey Sensitive type wrapper",
+              "status": "pending",
+              "priority": "medium"
+            },
+            {
+              "content": "Implement VSOCK fallback (bridge IP + iptables)",
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "content": "Define env var injection contract for cloud-init",
+              "status": "pending",
+              "priority": "medium"
+            }
+          ]
+        },
+        {
+          "name": "Session Manager (Component 2)",
+          "tasks": [
+            {
+              "content": "Implement CreateSession with orchestration",
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "content": "Implement session state machine (requested→creating→running→stopping→destroyed/error)",
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "content": "Implement rollback on provisioning failure",
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "content": "Implement stop/destroy with force option",
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "content": "Implement SQLite persistence",
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "content": "Implement session list/query",
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "content": "Implement connection info exposure",
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "content": "Rename ConnectionInfo to SessionConnectionInfo",
+              "status": "pending",
+              "priority": "medium"
+            },
+            {
+              "content": "Add concurrency serialization strategy",
+              "status": "pending",
+              "priority": "medium"
+            }
+          ]
+        },
+        {
+          "name": "Observability - Health (Component 7)",
+          "tasks": [
+            {
+              "content": "Implement host health check endpoint",
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "content": "Implement per-session health check",
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "content": "Implement health status aggregation",
+              "status": "pending",
+              "priority": "high"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Phase 3: Public Control Plane",
+      "components": [
+        {
+          "name": "REST API (Component 6)",
+          "tasks": [
+            {
+              "content": "Implement sessions CRUD endpoints",
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "content": "Implement images CRUD endpoints",
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "content": "Implement network policy query endpoints",
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "content": "Implement proxy status endpoint",
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "content": "Implement shared-folder status endpoint",
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "content": "Implement audit log query endpoint",
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "content": "Implement host health/capacity endpoint",
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "content": "Implement capabilities endpoint",
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "content": "Implement authentication on mutating endpoints",
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "content": "Implement authorization enforcement",
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "content": "Implement request body validation rules",
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "content": "Implement 202 Accepted for async session creation",
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "content": "Implement /v1/sessions/{id}/logs endpoint",
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "content": "Add per-endpoint auth matrix",
+              "status": "pending",
+              "priority": "medium"
+            }
+          ]
+        },
+        {
+          "name": "Observability - External (Component 7)",
+          "tasks": [
+            {
+              "content": "Implement Prometheus /metrics endpoint",
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "content": "Implement configurable log levels",
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "content": "Implement timing metrics emission",
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "content": "Fix metrics interface to use Prometheus conventions",
+              "status": "pending",
+              "priority": "medium"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Phase 4: Network Isolation",
+      "components": [
+        {
+          "name": "Network Policy Engine (Component 3)",
+          "tasks": [
+            {
+              "content": "Implement policy application at session creation",
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "content": "Implement strict/restricted/permissive modes",
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "content": "Implement host isolation rules (VM→host blocked)",
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "content": "Implement allow/block at IP/CIDR granularity",
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "content": "Implement DNS-name based policy",
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "content": "Implement runtime policy mutation (allow/block/reset)",
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "content": "Implement rule cleanup on destroy",
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "content": "Implement iptables/nftables rule generation",
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "content": "Implement network reconciliation on startup",
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "content": "Separate FirewallBackend interface",
+              "status": "pending",
+              "priority": "medium"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Phase 5: Resource Enforcement & Reconciliation",
+      "components": [
+        {
+          "name": "Host Resource Manager (Component 8)",
+          "tasks": [
+            {
+              "content": "Implement cgroups v2 slice creation per session",
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "content": "Implement CPU limits enforcement",
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "content": "Implement memory limits enforcement",
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "content": "Implement PID limits enforcement",
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "content": "Implement I/O limits enforcement (device lookup strategy)",
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "content": "Implement capacity admission control",
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "content": "Implement full platform reconciliation on startup",
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "content": "Implement host resources exposure",
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "content": "Implement cgroup path sanitization",
+              "status": "pending",
+              "priority": "medium"
+            },
+            {
+              "content": "Mitigate AssignProcess race condition",
+              "status": "pending",
+              "priority": "medium"
+            },
+            {
+              "content": "Define single reconciliation coordinator",
+              "status": "pending",
+              "priority": "medium"
+            }
+          ]
+        },
+        {
+          "name": "Reconciliation Cross-Cutting",
+          "tasks": [
+            {
+              "content": "Unify OrphanReport and ReconcileReport",
+              "status": "pending",
+              "priority": "medium"
+            },
+            {
+              "content": "Implement VM console log capture (virDomainOpenConsole)",
+              "status": "pending",
+              "priority": "medium"
+            },
+            {
+              "content": "Implement audit retention purge (90-day default)",
+              "status": "pending",
+              "priority": "medium"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Phase 6: Security & Production Readiness",
+      "components": [
+        {
+          "name": "Security Hardening",
+          "tasks": [
+            {
+              "content": "Validate SELinux/sVirt configuration",
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "content": "Implement red-team test plan",
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "content": "Document operator hardening guidance",
+              "status": "pending",
+              "priority": "medium"
+            },
+            {
+              "content": "Implement rate limiting (ADR)",
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "content": "Implement HTTPS configuration",
+              "status": "pending",
+              "priority": "high"
+            }
+          ]
+        },
+        {
+          "name": "Final Integration",
+          "tasks": [
+            {
+              "content": "End-to-end session creation/destroy flow",
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "content": "Crash recovery and reconciliation testing",
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "content": "Performance benchmarking (latency, throughput)",
+              "status": "pending",
+              "priority": "medium"
+            },
+            {
+              "content": "Security penetration testing",
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "content": "Metrics dashboards setup",
+              "status": "pending",
+              "priority": "medium"
+            },
+            {
+              "content": "Operational runbook documentation",
+              "status": "pending",
+              "priority": "medium"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Cross-Cutting Concerns (Address Early)",
+      "components": [
+        {
+          "name": "Shared Types (shared/types/)",
+          "tasks": [
+            {
+              "content": "Resolve duplicate type definitions - mark canonical",
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "content": "Define all shared domain types once",
+              "status": "pending",
+              "priority": "high"
+            }
+          ]
+        },
+        {
+          "name": "Audit Infrastructure",
+          "tasks": [
+            {
+              "content": "Unify AuditEmitter in shared/",
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "content": "Define audit event schema",
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "content": "Implement audit retention policy",
+              "status": "pending",
+              "priority": "high"
+            }
+          ]
+        },
+        {
+          "name": "Infrastructure",
+          "tasks": [
+            {
+              "content": "Add SQLite migration strategy",
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "content": "Add explicit rollback-failure handling",
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "content": "Fix NFR conflict - document async handling",
+              "status": "pending",
+              "priority": "medium"
+            }
+          ]
+        },
+        {
+          "name": "gRPC Contracts (Deferred)",
+          "tasks": [
+            {
+              "content": "Define gRPC service contracts (deferred per ADR-001)",
+              "status": "pending",
+              "priority": "low"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
