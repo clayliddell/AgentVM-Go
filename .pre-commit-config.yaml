@@ -1,0 +1,15 @@
+repos:
+  - repo: local
+    hooks:
+      - id: golangci-lint
+        name: golangci-lint
+        entry: golangci-lint run --fix
+        language: system
+        types: [go]
+        pass_filenames: false
+      - id: file-size-budget
+        name: File size budget (max 500 lines)
+        entry: bash -c 'for f in "$@"; do lines=$(wc -l < "$f"); if [ "$lines" -gt 500 ]; then echo "FAIL: $f has $lines lines"; exit 1; fi; done'
+        language: system
+        types: [go]
+        exclude: _test\.go$

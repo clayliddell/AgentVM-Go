@@ -24,13 +24,13 @@ golangci-lint run ./...
 | Rule | Analyzer Purpose |
 |------|------------------|
 | R1 | Reject cross-imports between feature packages |
+| R5 | Flag files exceeding 500 lines |
+| R6 | Flag packages exceeding 10 non-test files |
 | R8 | Detect circular dependencies |
 | R9 | Flag package-level mutable state |
 | R10 | Ban `init()` functions |
 | R11 | Restrict `database/sql` imports to `store.go` files |
 | R12 | Restrict `net/http` imports to `handler.go` files |
-| R5 | Flag files exceeding 500 lines |
-| R6 | Flag packages exceeding 10 non-test files |
 
 ## 3. Testing Requirements
 
