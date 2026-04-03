@@ -14,6 +14,7 @@ echo ""
 STAGES=(
     "lint:CI Lint (golangci-lint + custom analyzers)"
     "test:Unit Tests (coverage gate >=95%)"
+    "race:Race Condition Testing (-race flag)"
     "mutation:Mutation Tests (score gate >=90%)"
     "integration:Integration Tests"
     "security:Security Scanning (gosec + govulncheck)"

@@ -1,9 +1,10 @@
-.PHONY: help lint test test-integration test-e2e mutation security budgets ci pre-commit analyzers clean
+.PHONY: help lint test test-integration test-e2e mutation security budgets ci pre-commit analyzers clean race
 
 help:
 	@echo "Available targets:"
 	@echo "  lint              Run golangci-lint + custom analyzers"
 	@echo "  test              Run unit tests with coverage gate"
+	@echo "  race              Run tests with -race flag"
 	@echo "  test-integration  Run integration tests"
 	@echo "  test-e2e          Run E2E tests (requires CI_E2E=true)"
 	@echo "  mutation          Run mutation tests"
@@ -19,6 +20,9 @@ lint:
 
 test:
 	@./scripts/ci-test.sh
+
+race:
+	@./scripts/ci-race.sh
 
 test-integration:
 	@./scripts/ci-integration.sh

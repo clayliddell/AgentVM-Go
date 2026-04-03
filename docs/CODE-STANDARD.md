@@ -58,6 +58,7 @@ golangci-lint run ./...
 | Test Type | Target | Enforcement |
 |-----------|--------|-------------|
 | Unit Test | >=95% line coverage | CI gate (`ci-test.sh`) |
+| Race Detection | Zero data races | CI gate (`ci-race.sh`) |
 | Mutation Test | >=90% mutation score | CI gate (`ci-mutation.sh`) |
 | Integration Test | 100% of cross-feature contracts | CI gate (`ci-integration.sh`) |
 | E2E Test | 100% of user-facing workflows | CI gate (`ci-e2e.sh`, gated by `CI_E2E=true`) |
