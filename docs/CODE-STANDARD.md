@@ -19,18 +19,37 @@ golangci-lint run ./...
 
 **Required linters:** `errcheck`, `govet`, `staticcheck`, `gosec`, `ineffassign`, `unused`, `gosimple`, `typecheck`, `gocritic`, `revive`.
 
-**Custom analyzers required** (see ARCHITECTURE.md):
+**Custom analyzers** (see ARCHITECTURE.md):
 
-| Rule | Analyzer Purpose |
-|------|------------------|
-| R1 | Reject cross-imports between feature packages |
-| R5 | Flag files exceeding 500 lines |
-| R6 | Flag packages exceeding 10 non-test files |
-| R8 | Detect circular dependencies |
-| R9 | Flag package-level mutable state |
-| R10 | Ban `init()` functions |
-| R11 | Restrict `database/sql` imports to `store.go` files |
-| R12 | Restrict `net/http` imports to `handler.go` files |
+| Rule | Analyzer | Purpose |
+|------|----------|---------|
+| R1 | `crossimport` | Reject cross-imports between feature packages |
+| R2 | `sharedtypes` | Reject feature imports in shared/types |
+| R3 | `wiringonly` | Only wiring may import multiple feature packages |
+| R5 | `filesize` | Flag files exceeding 500 lines |
+| R6 | `filecount` | Flag packages exceeding 10 non-test files |
+| R8 | `circular` | Detect circular dependencies |
+| R9 | `mutablestate` | Flag package-level mutable exported vars |
+| R10 | `baninit` | Ban `init()` functions |
+| R11/R12 | `importlocation` | Restrict `database/sql` to store.go, `net/http` to handler.go |
+| R15 | `revive` (exported) | Require godoc on all exported declarations |
+| R18 | `ioseparation` | Ban IO imports in business logic files |
+| R19 | `reexport` | No re-exporting types from other module packages |
+
+**Script-enforced rules:**
+
+| Rule | Script | Purpose |
+|------|--------|---------|
+| R7 | `ci-budgets.sh` | Max 3 directory levels under internal/ |
+
+**Not enforced (design principles):**
+
+| Rule | Reason |
+|------|--------|
+| R4 | Consumer defines interfaces — design principle, enforced via code review |
+| R13 | One primary type per package — not enforced |
+| R14 | File naming conventions — not enforced |
+| R16 | Feature README.md — not enforced |
 
 ## 3. Testing Requirements
 
@@ -38,10 +57,10 @@ golangci-lint run ./...
 
 | Test Type | Target | Enforcement |
 |-----------|--------|-------------|
-| Unit Test | >=95% line coverage | CI gate |
-| Mutation Test | >=90% mutation score | CI gate |
-| Integration Test | 100% of cross-feature contracts | CI gate |
-| E2E Test | 100% of user-facing workflows | CI gate |
+| Unit Test | >=95% line coverage | CI gate (`ci-test.sh`) |
+| Mutation Test | >=90% mutation score | CI gate (`ci-mutation.sh`) |
+| Integration Test | 100% of cross-feature contracts | CI gate (`ci-integration.sh`) |
+| E2E Test | 100% of user-facing workflows | CI gate (`ci-e2e.sh`, gated by `CI_E2E=true`) |
 
 ### 3.2 Test Categories
 
@@ -76,7 +95,7 @@ golangci-lint run ./...
 
 ## 4. API & Contract Compliance
 
-- Every exported function must have a godoc comment.
+- Every exported function must have a godoc comment (enforced by `revive`).
 - Consumer-defined interfaces must document their purpose.
 - Every feature `README.md` must list: purpose, entrypoints, dependencies.
 
@@ -116,12 +135,12 @@ docs/adr/NNNN-short-title.md
 ## 7. CI/CD Pipeline
 
 ```
-1. Lint          → golangci-lint + custom analyzers
+1. Lint          → golangci-lint + custom analyzers (R1, R2, R3, R5, R6, R8, R9, R10, R11, R12, R15, R18, R19)
 2. Unit Tests    → go test -coverprofile, fail under 95%
 3. Mutation      → go-mutesting, fail under 90%
 4. Integration   → go test -tags=integration
 5. Security      → gosec, govulncheck
-6. Budgets       → file size + file count checks
+6. Budgets       → file size (R5), file count (R6), directory depth (R7)
 7. E2E           → go test -tags=e2e (staging only)
 ```
 

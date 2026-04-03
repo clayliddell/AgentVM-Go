@@ -27,7 +27,7 @@ func run(pass *analysis.Pass) (interface{}, error) {
 
 		lastLine := fset.Position(file.End()).Line
 		if lastLine > maxLines {
-			pass.Reportf(file.Pos(), "R5: file %q has %d lines, exceeds budget of %d", filename, lastLine, maxLines)
+			pass.Reportf(file.Pos(), "R5: file %q has %d lines, exceeds budget of %d — see docs/ARCHITECTURE.md#R5", filename, lastLine, maxLines)
 		}
 	}
 

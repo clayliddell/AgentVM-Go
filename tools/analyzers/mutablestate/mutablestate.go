@@ -41,7 +41,7 @@ func run(pass *analysis.Pass) (interface{}, error) {
 
 			for _, name := range vs.Names {
 				if name.IsExported() && name.Name != "Analyzer" {
-					pass.Reportf(name.Pos(), "R9: package-level mutable state %q is banned", name.Name)
+					pass.Reportf(name.Pos(), "R9: package-level mutable state %q is banned — see docs/ARCHITECTURE.md#R9", name.Name)
 				}
 			}
 		}

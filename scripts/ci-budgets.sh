@@ -12,6 +12,7 @@ cd "$ROOT_DIR"
 
 MAX_LINES=500
 MAX_FILES=10
+MAX_DEPTH=3
 FAIL=0
 
 echo ""
@@ -19,7 +20,7 @@ echo "--- File Size Budget (max ${MAX_LINES} lines per .go file, excluding tests
 while IFS= read -r -d '' file; do
     LINES=$(wc -l < "$file")
     if [ "$LINES" -gt "$MAX_LINES" ]; then
-        echo "FAIL: $file has $LINES lines (max: $MAX_LINES)"
+        echo "FAIL: $file has $LINES lines (max: $MAX_LINES) — see docs/ARCHITECTURE.md#R5"
         FAIL=1
     fi
 done < <(find "$ROOT_DIR" -name "*.go" ! -name "*_test.go" -print0)
@@ -33,13 +34,30 @@ echo "--- File Count Budget (max ${MAX_FILES} non-test .go files per package) --
 while IFS= read -r -d '' dir; do
     COUNT=$(find "$dir" -maxdepth 1 -name "*.go" ! -name "*_test.go" | wc -l)
     if [ "$COUNT" -gt "$MAX_FILES" ]; then
-        echo "FAIL: $dir has $COUNT non-test .go files (max: $MAX_FILES)"
+        echo "FAIL: $dir has $COUNT non-test .go files (max: $MAX_FILES) — see docs/ARCHITECTURE.md#R6"
         FAIL=1
     fi
 done < <(find "$ROOT_DIR" -type d -name "*.go" -exec dirname {} \; 2>/dev/null | sort -u | tr '\n' '\0')
 
 if [ "$FAIL" -eq 0 ]; then
     echo "File count budget: PASSED"
+fi
+
+echo ""
+echo "--- Directory Depth Budget (max ${MAX_DEPTH} levels under internal/) ---"
+if [ -d "$ROOT_DIR/internal" ]; then
+    while IFS= read -r -d '' file; do
+        REL="${file#$ROOT_DIR/internal/}"
+        DEPTH=$(echo "$REL" | tr '/' '\n' | wc -l)
+        if [ "$DEPTH" -gt "$MAX_DEPTH" ]; then
+            echo "FAIL: $file has $DEPTH levels under internal/ (max: $MAX_DEPTH) — see docs/ARCHITECTURE.md#R7"
+            FAIL=1
+        fi
+    done < <(find "$ROOT_DIR/internal" -name "*.go" -print0)
+fi
+
+if [ "$FAIL" -eq 0 ]; then
+    echo "Directory depth budget: PASSED"
 fi
 
 echo ""

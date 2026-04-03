@@ -45,7 +45,7 @@ func run(pass *analysis.Pass) (interface{}, error) {
 
 			if allowedFile, ok := restrictedImports[path]; ok {
 				if baseName != allowedFile {
-					pass.Reportf(imp.Pos(), "R11/R12: %q may only be imported in %s files, found in %s", path, allowedFile, baseName)
+					pass.Reportf(imp.Pos(), "R11/R12: %q may only be imported in %s files, found in %s — see docs/ARCHITECTURE.md#R11", path, allowedFile, baseName)
 				}
 			}
 		})

@@ -7,7 +7,11 @@ import (
 	"analyzers/filecount"
 	"analyzers/filesize"
 	"analyzers/importlocation"
+	"analyzers/ioseparation"
 	"analyzers/mutablestate"
+	"analyzers/reexport"
+	"analyzers/sharedtypes"
+	"analyzers/wiringonly"
 
 	"golang.org/x/tools/go/analysis/multichecker"
 )
@@ -15,10 +19,14 @@ import (
 func main() {
 	multichecker.Main(
 		crossimport.Analyzer,
+		sharedtypes.Analyzer,
+		wiringonly.Analyzer,
 		circular.Analyzer,
 		mutablestate.Analyzer,
 		baninit.Analyzer,
 		importlocation.Analyzer,
+		ioseparation.Analyzer,
+		reexport.Analyzer,
 		filesize.Analyzer,
 		filecount.Analyzer,
 	)

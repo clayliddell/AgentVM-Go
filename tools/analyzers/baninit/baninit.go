@@ -44,7 +44,7 @@ func run(pass *analysis.Pass) (interface{}, error) {
 				return
 			}
 
-			pass.Reportf(fn.Pos(), "R10: init() functions are banned")
+			pass.Reportf(fn.Pos(), "R10: init() functions are banned — see docs/ARCHITECTURE.md#R10")
 		}
 	})
 

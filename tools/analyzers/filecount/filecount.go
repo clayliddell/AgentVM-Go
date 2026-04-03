@@ -39,7 +39,7 @@ func run(pass *analysis.Pass) (interface{}, error) {
 	}
 
 	if count > maxFiles {
-		pass.Reportf(token.NoPos, "R6: package %q has %d non-test .go files, exceeds budget of %d", pass.Pkg.Path(), count, maxFiles)
+		pass.Reportf(token.NoPos, "R6: package %q has %d non-test .go files, exceeds budget of %d — see docs/ARCHITECTURE.md#R6", pass.Pkg.Path(), count, maxFiles)
 	}
 
 	return nil, nil

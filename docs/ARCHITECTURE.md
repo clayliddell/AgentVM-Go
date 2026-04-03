@@ -36,14 +36,14 @@ at the package level regardless of grouping.
 
 ## Boundary Rules
 
-- Feature packages import only: `shared/types`, `stdlib`, and themselves.
-- `shared/types` must not import any feature package.
-- `wiring/` is the sole package permitted to import multiple features.
-- Features define their own consumer interfaces. Never share interface
+- [R1] Feature packages import only: `shared/types`, `stdlib`, and themselves.
+- [R2] `shared/types` must not import any feature package.
+- [R3] `wiring/` is the sole package permitted to import multiple features.
+- [R4] Features define their own consumer interfaces. Never share interface
   definitions across features. Go's implicit interface satisfaction
   means the provider satisfies the interface without knowing the
   consumer exists.
-- Interface definitions should declare only the minimum surface the
+- [R20] Interface definitions should declare only the minimum surface the
   consumer needs, not the provider's full API.
 
 ### How features communicate
@@ -57,35 +57,35 @@ concrete instance during assembly. No cross-import occurs.
 
 ## Size Budgets
 
-- 500 lines maximum per `.go` file (test files excluded).
-- 10 `.go` files maximum per package (test files excluded).
-- 3 directory levels maximum under `internal/`.
+- [R5] 500 lines maximum per `.go` file (test files excluded).
+- [R6] 10 `.go` files maximum per package (test files excluded).
+- [R7] 3 directory levels maximum under `internal/`.
 
 ---
 
 ## Dependency Hygiene
 
-- No circular dependencies.
-- No package-level mutable state (`var x T = ...` at package scope).
-- No `init()` functions.
-- `database/sql` (and any DB driver) may only appear in `store.go` files.
-- `net/http` may only appear in `handler.go` files.
-- Business logic files must not perform IO. IO files must not contain
+- [R8] No circular dependencies.
+- [R9] No package-level mutable state (`var x T = ...` at package scope).
+- [R10] No `init()` functions.
+- [R11] `database/sql` (and any DB driver) may only appear in `store.go` files.
+- [R12] `net/http` may only appear in `handler.go` files.
+- [R18] Business logic files must not perform IO. IO files must not contain
   business logic.
 
 ---
 
 ## Discoverability
 
-- Each package exports exactly one primary type (`Service`, `Store`).
-- File naming convention: `types.go`, `service.go`, `store.go`,
+- [R13] Each package exports exactly one primary type (`Service`, `Store`).
+- [R14] File naming convention: `types.go`, `service.go`, `store.go`,
   `handler.go`, `errors.go`.
-- Every exported function has a godoc comment.
-- Each feature directory contains a `README.md` stating: purpose,
+- [R15] Every exported function has a godoc comment.
+- [R16] Each feature directory contains a `README.md` stating: purpose,
   exported entrypoints, and what it depends on.
-- Error types are defined in the file containing the function that
+- [R17] Error types are defined in the file containing the function that
   returns them.
-- No re-exporting — package A must not export package B's types.
+- [R19] No re-exporting — package A must not export package B's types.
 
 ---
 

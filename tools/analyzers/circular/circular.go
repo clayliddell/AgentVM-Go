@@ -44,7 +44,7 @@ func run(pass *analysis.Pass) (interface{}, error) {
 		seen[path] = true
 
 		if strings.HasPrefix(path, pkgPath+".") || strings.HasPrefix(pkgPath, path+".") {
-			pass.Reportf(imp.Pos(), "R8: potential circular dependency detected: %q imports %q", pkgPath, path)
+			pass.Reportf(imp.Pos(), "R8: potential circular dependency detected: %q imports %q — see docs/ARCHITECTURE.md#R8", pkgPath, path)
 		}
 	})
 

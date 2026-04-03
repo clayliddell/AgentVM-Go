@@ -1,4 +1,4 @@
-package crossimport
+package sharedtypes
 
 import (
 	"go/ast"
@@ -9,10 +9,10 @@ import (
 	"golang.org/x/tools/go/ast/inspector"
 )
 
-const doc = "R1: reject cross-imports between feature packages"
+const doc = "R2: reject feature imports in shared/types packages"
 
 var Analyzer = &analysis.Analyzer{
-	Name: "crossimport",
+	Name: "sharedtypes",
 	Doc:  doc,
 	Run:  run,
 	Requires: []*analysis.Analyzer{
@@ -21,6 +21,11 @@ var Analyzer = &analysis.Analyzer{
 }
 
 func run(pass *analysis.Pass) (interface{}, error) {
+	pkgPath := pass.Pkg.Path()
+	if !strings.Contains(pkgPath, "shared/types") {
+		return nil, nil
+	}
+
 	inspect := pass.ResultOf[inspect.Analyzer].(*inspector.Inspector)
 
 	nodeFilter := []ast.Node{
@@ -31,11 +36,8 @@ func run(pass *analysis.Pass) (interface{}, error) {
 		imp := n.(*ast.ImportSpec)
 		path := strings.Trim(imp.Path.Value, `"`)
 
-		if strings.Contains(path, "internal/features/") && !strings.HasPrefix(path, pass.Pkg.Path()) {
-			pkgPath := pass.Pkg.Path()
-			if strings.Contains(pkgPath, "internal/features/") {
-				pass.Reportf(imp.Pos(), "R1: feature package %q must not import %q — see docs/ARCHITECTURE.md#R1", pkgPath, path)
-			}
+		if strings.Contains(path, "features/") {
+			pass.Reportf(imp.Pos(), "R2: shared/types must not import feature packages — see docs/ARCHITECTURE.md#R2")
 		}
 	})
 
