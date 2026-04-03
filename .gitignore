@@ -1,2 +1,4 @@
 /env
 coverage.out
+report.json
+tools/analyzers/bin

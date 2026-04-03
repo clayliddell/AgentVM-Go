@@ -7,7 +7,7 @@ ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 START_TIME=$(date +%s)
 
 echo "╔══════════════════════════════════════════════════════════╗"
-echo "║           CI Pipeline — AgentVM                         ║"
+echo "║                 CI Pipeline — AgentVM                    ║"
 echo "╚══════════════════════════════════════════════════════════╝"
 echo ""
 

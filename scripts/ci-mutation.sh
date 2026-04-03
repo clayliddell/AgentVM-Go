@@ -19,12 +19,12 @@ if command -v go-mutesting &>/dev/null; then
     MUTATION_OUTPUT=$(go-mutesting ./... 2>&1 || true)
     echo "$MUTATION_OUTPUT"
 
-    KILLED=$(echo "$MUTATION_OUTPUT" | grep -oP 'Killed: \K\d+' || echo "0")
-    SURVIVED=$(echo "$MUTATION_OUTPUT" | grep -oP 'Survived: \K\d+' || echo "0")
-    TOTAL=$((KILLED + SURVIVED))
+    SCORE_LINE=$(echo "$MUTATION_OUTPUT" | grep "The mutation score is" || echo "")
 
-    if [ "$TOTAL" -gt 0 ]; then
-        SCORE=$(echo "scale=2; $KILLED * 100 / $TOTAL" | bc)
+    if [ -n "$SCORE_LINE" ]; then
+        SCORE_DECIMAL=$(echo "$SCORE_LINE" | grep -oP 'The mutation score is \K[0-9.]+')
+        SCORE=$(echo "scale=2; $SCORE_DECIMAL * 100" | bc)
+
         echo ""
         echo "Mutation score: ${SCORE}%"
         echo "Minimum required: ${MIN_MUTATION_SCORE}%"
