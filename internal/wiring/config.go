@@ -12,7 +12,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"regexp"
+
 	"strconv"
 	"strings"
 	"time"
@@ -92,6 +92,12 @@ type ValidationError struct {
 // ValidationErrors is a collection of validation errors.
 type ValidationErrors []ValidationError
 
+// Is implements errors.Is for ValidationErrors.
+func (ve ValidationErrors) Is(target error) bool {
+	_, ok := target.(ValidationErrors)
+	return ok
+}
+
 // Error returns a human-readable multi-line error message.
 func (ve ValidationErrors) Error() string {
 	count := len(ve)
@@ -103,11 +109,17 @@ func (ve ValidationErrors) Error() string {
 	if count == 1 {
 		b.WriteString("configuration validation failed: ")
 	} else {
-		fmt.Fprintf(&b, "configuration validation failed (%d errors): ", count)
+		b.WriteString("configuration validation failed (")
+		b.WriteString(strconv.Itoa(count))
+		b.WriteString(" errors): ")
 	}
 	b.WriteString("\n")
 	for _, e := range ve {
-		b.WriteString(fmt.Sprintf("  - %s: %s\n", e.Field, e.Reason))
+		b.WriteString("  - ")
+		b.WriteString(e.Field)
+		b.WriteString(": ")
+		b.WriteString(e.Reason)
+		b.WriteString("\n")
 	}
 	return strings.TrimRight(b.String(), "\n")
 }
@@ -116,15 +128,7 @@ func (ve ValidationErrors) Error() string {
 // Valid log levels
 // ---------------------------------------------------------------------------
 
-var validLogLevels = map[string]bool{
-	"debug": true,
-	"info":  true,
-	"warn":  true,
-	"error": true,
-}
-
-// URI pattern for libvirt URIs (simplified but covers common cases).
-var libvirtURIRegex = regexp.MustCompile(`^[a-z][a-z0-9+.-]*://`)
+var validLogLevels = []string{"debug", "info", "warn", "error"}
 
 // ---------------------------------------------------------------------------
 // Load reads configuration from a JSON file (if source is non-empty) and
@@ -146,7 +150,9 @@ func Load(source string) (*Config, error) {
 	}
 
 	// Override with environment variables.
-	loadFromEnv(cfg)
+	if err := loadFromEnv(cfg); err != nil {
+		return nil, fmt.Errorf("failed to load config from environment: %w", err)
+	}
 
 	// Validate all settings.
 	if errs := validate(cfg); len(errs) > 0 {
@@ -229,8 +235,8 @@ func applyDefaults(cfg *Config) {
 
 // ---------------------------------------------------------------------------
 // loadFromFile reads a JSON config file and merges into cfg.
-func loadFromFile(path string, cfg *Config) error {
-	data, err := os.ReadFile(path)
+func loadFromFile(configPath string, cfg *Config) error {
+	data, err := os.ReadFile(configPath)
 	if err != nil {
 		return err
 	}
@@ -265,19 +271,25 @@ func loadFromFile(path string, cfg *Config) error {
 			"listenAddr": &cfg.API.ListenAddr,
 		})
 		if v, ok := api["readTimeout"].(string); ok {
-			if d, err := time.ParseDuration(v); err == nil {
-				cfg.API.ReadTimeout = d
+			d, err := time.ParseDuration(v)
+			if err != nil {
+				return fmt.Errorf("api.readTimeout: invalid duration %q: %w", v, err)
 			}
+			cfg.API.ReadTimeout = d
 		}
 		if v, ok := api["writeTimeout"].(string); ok {
-			if d, err := time.ParseDuration(v); err == nil {
-				cfg.API.WriteTimeout = d
+			d, err := time.ParseDuration(v)
+			if err != nil {
+				return fmt.Errorf("api.writeTimeout: invalid duration %q: %w", v, err)
 			}
+			cfg.API.WriteTimeout = d
 		}
 		if v, ok := api["shutdownTimeout"].(string); ok {
-			if d, err := time.ParseDuration(v); err == nil {
-				cfg.API.ShutdownTimeout = d
+			d, err := time.ParseDuration(v)
+			if err != nil {
+				return fmt.Errorf("api.shutdownTimeout: invalid duration %q: %w", v, err)
 			}
+			cfg.API.ShutdownTimeout = d
 		}
 	}
 
@@ -293,7 +305,6 @@ func loadFromFile(path string, cfg *Config) error {
 	}
 
 	if limits, ok := raw["limits"].(map[string]any); ok {
-		applyMapStringAny(limits, map[string]*string{})
 		if v, ok := limits["maxConcurrentVMs"].(float64); ok {
 			cfg.Limits.MaxConcurrentVMs = int(v)
 		}
@@ -301,9 +312,11 @@ func loadFromFile(path string, cfg *Config) error {
 			cfg.Limits.MaxConcurrentSessions = int(v)
 		}
 		if v, ok := limits["vmStartTimeout"].(string); ok {
-			if d, err := time.ParseDuration(v); err == nil {
-				cfg.Limits.VMStartTimeout = d
+			d, err := time.ParseDuration(v)
+			if err != nil {
+				return fmt.Errorf("limits.vmStartTimeout: invalid duration %q: %w", v, err)
 			}
+			cfg.Limits.VMStartTimeout = d
 		}
 		if v, ok := limits["diskSizeDefaultGB"].(float64); ok {
 			cfg.Limits.DiskSizeDefaultGB = int(v)
@@ -328,95 +341,110 @@ func applyMapStringAny(src map[string]any, targets map[string]*string) {
 
 // ---------------------------------------------------------------------------
 // loadFromEnv overrides config values from AGENTVM_ environment variables.
-func loadFromEnv(cfg *Config) {
+func loadFromEnv(cfg *Config) error {
 	if v := os.Getenv("AGENTVM_HOST_LIBVIRT_URI"); v != "" {
 		cfg.Host.LibvirtURI = v
 	}
-	getenv := os.Getenv
-	if v := getenv("AGENTVM_HOST_LIBVIRT_SOCKET_PATH"); v != "" {
+	if v := os.Getenv("AGENTVM_HOST_LIBVIRT_SOCKET_PATH"); v != "" {
 		cfg.Host.LibvirtSocketPath = v
 	}
-	if v := getenv("AGENTVM_HOST_QEMU_IMG_PATH"); v != "" {
+	if v := os.Getenv("AGENTVM_HOST_QEMU_IMG_PATH"); v != "" {
 		cfg.Host.QemuImgPath = v
 	}
-	if v := getenv("AGENTVM_HOST_CLOUD_LOCAL_GEN_ISO_PATH"); v != "" {
+	if v := os.Getenv("AGENTVM_HOST_CLOUD_LOCAL_GEN_ISO_PATH"); v != "" {
 		cfg.Host.CloudLocalGenISOPath = v
 	}
 
-	if v := getenv("AGENTVM_PATHS_BASE_IMAGES_DIR"); v != "" {
+	if v := os.Getenv("AGENTVM_PATHS_BASE_IMAGES_DIR"); v != "" {
 		cfg.Paths.BaseImagesDir = v
 	}
-	if v := getenv("AGENTVM_PATHS_OVERLAY_DISKS_DIR"); v != "" {
+	if v := os.Getenv("AGENTVM_PATHS_OVERLAY_DISKS_DIR"); v != "" {
 		cfg.Paths.OverlayDisksDir = v
 	}
-	if v := getenv("AGENTVM_PATHS_CLOUD_INIT_DIR"); v != "" {
+	if v := os.Getenv("AGENTVM_PATHS_CLOUD_INIT_DIR"); v != "" {
 		cfg.Paths.CloudInitDir = v
 	}
-	if v := getenv("AGENTVM_PATHS_DATA_DIR"); v != "" {
+	if v := os.Getenv("AGENTVM_PATHS_DATA_DIR"); v != "" {
 		cfg.Paths.DataDir = v
 	}
-	if v := getenv("AGENTVM_PATHS_SQLITE_DB_PATH"); v != "" {
+	if v := os.Getenv("AGENTVM_PATHS_SQLITE_DB_PATH"); v != "" {
 		cfg.Paths.SQLiteDBPath = v
 	}
 
-	if v := getenv("AGENTVM_API_LISTEN_ADDR"); v != "" {
+	if v := os.Getenv("AGENTVM_API_LISTEN_ADDR"); v != "" {
 		cfg.API.ListenAddr = v
 	}
-	if v := getenv("AGENTVM_API_READ_TIMEOUT"); v != "" {
-		if d, err := time.ParseDuration(v); err == nil {
-			cfg.API.ReadTimeout = d
+	if v := os.Getenv("AGENTVM_API_READ_TIMEOUT"); v != "" {
+		d, err := time.ParseDuration(v)
+		if err != nil {
+			return fmt.Errorf("AGENTVM_API_READ_TIMEOUT: invalid duration %q: %w", v, err)
 		}
+		cfg.API.ReadTimeout = d
 	}
-	if v := getenv("AGENTVM_API_WRITE_TIMEOUT"); v != "" {
-		if d, err := time.ParseDuration(v); err == nil {
-			cfg.API.WriteTimeout = d
+	if v := os.Getenv("AGENTVM_API_WRITE_TIMEOUT"); v != "" {
+		d, err := time.ParseDuration(v)
+		if err != nil {
+			return fmt.Errorf("AGENTVM_API_WRITE_TIMEOUT: invalid duration %q: %w", v, err)
 		}
+		cfg.API.WriteTimeout = d
 	}
-	if v := getenv("AGENTVM_API_SHUTDOWN_TIMEOUT"); v != "" {
-		if d, err := time.ParseDuration(v); err == nil {
-			cfg.API.ShutdownTimeout = d
+	if v := os.Getenv("AGENTVM_API_SHUTDOWN_TIMEOUT"); v != "" {
+		d, err := time.ParseDuration(v)
+		if err != nil {
+			return fmt.Errorf("AGENTVM_API_SHUTDOWN_TIMEOUT: invalid duration %q: %w", v, err)
 		}
+		cfg.API.ShutdownTimeout = d
 	}
 
-	if v := getenv("AGENTVM_SECURITY_ADMIN_TOKEN"); v != "" {
+	if v := os.Getenv("AGENTVM_SECURITY_ADMIN_TOKEN"); v != "" {
 		cfg.Security.AdminToken = v
 	}
-	if v := getenv("AGENTVM_SECURITY_TLS_CERT_PATH"); v != "" {
+	if v := os.Getenv("AGENTVM_SECURITY_TLS_CERT_PATH"); v != "" {
 		cfg.Security.TLSCertPath = v
 	}
-	if v := getenv("AGENTVM_SECURITY_TLS_KEY_PATH"); v != "" {
+	if v := os.Getenv("AGENTVM_SECURITY_TLS_KEY_PATH"); v != "" {
 		cfg.Security.TLSKeyPath = v
 	}
-	if v := getenv("AGENTVM_SECURITY_TLS_ENABLED"); v != "" {
+	if v := os.Getenv("AGENTVM_SECURITY_TLS_ENABLED"); v != "" {
 		cfg.Security.TLSEnabled = strings.ToLower(v) == "true"
 	}
 
-	if v := getenv("AGENTVM_LIMITS_MAX_CONCURRENT_VMS"); v != "" {
-		if n, err := strconv.Atoi(v); err == nil {
-			cfg.Limits.MaxConcurrentVMs = n
+	if v := os.Getenv("AGENTVM_LIMITS_MAX_CONCURRENT_VMS"); v != "" {
+		n, err := strconv.Atoi(v)
+		if err != nil {
+			return fmt.Errorf("AGENTVM_LIMITS_MAX_CONCURRENT_VMS: invalid integer %q: %w", v, err)
 		}
+		cfg.Limits.MaxConcurrentVMs = n
 	}
-	if v := getenv("AGENTVM_LIMITS_MAX_CONCURRENT_SESSIONS"); v != "" {
-		if n, err := strconv.Atoi(v); err == nil {
-			cfg.Limits.MaxConcurrentSessions = n
+	if v := os.Getenv("AGENTVM_LIMITS_MAX_CONCURRENT_SESSIONS"); v != "" {
+		n, err := strconv.Atoi(v)
+		if err != nil {
+			return fmt.Errorf("AGENTVM_LIMITS_MAX_CONCURRENT_SESSIONS: invalid integer %q: %w", v, err)
 		}
+		cfg.Limits.MaxConcurrentSessions = n
 	}
-	if v := getenv("AGENTVM_LIMITS_VM_START_TIMEOUT"); v != "" {
-		if d, err := time.ParseDuration(v); err == nil {
-			cfg.Limits.VMStartTimeout = d
+	if v := os.Getenv("AGENTVM_LIMITS_VM_START_TIMEOUT"); v != "" {
+		d, err := time.ParseDuration(v)
+		if err != nil {
+			return fmt.Errorf("AGENTVM_LIMITS_VM_START_TIMEOUT: invalid duration %q: %w", v, err)
 		}
+		cfg.Limits.VMStartTimeout = d
 	}
-	if v := getenv("AGENTVM_LIMITS_DISK_SIZE_DEFAULT_GB"); v != "" {
-		if n, err := strconv.Atoi(v); err == nil {
-			cfg.Limits.DiskSizeDefaultGB = n
+	if v := os.Getenv("AGENTVM_LIMITS_DISK_SIZE_DEFAULT_GB"); v != "" {
+		n, err := strconv.Atoi(v)
+		if err != nil {
+			return fmt.Errorf("AGENTVM_LIMITS_DISK_SIZE_DEFAULT_GB: invalid integer %q: %w", v, err)
 		}
+		cfg.Limits.DiskSizeDefaultGB = n
 	}
 
-	if v := getenv("AGENTVM_LOG_LEVEL"); v != "" {
+	if v := os.Getenv("AGENTVM_LOG_LEVEL"); v != "" {
 		cfg.LogLevel = v
 	}
 
-	if v := getenv("AGENTVM_SKIP_HOST_CHECKS"); v != "" {
+	if v := os.Getenv("AGENTVM_SKIP_HOST_CHECKS"); v != "" {
 		cfg.SkipHostChecks = strings.ToLower(v) == "true"
 	}
+
+	return nil
 }

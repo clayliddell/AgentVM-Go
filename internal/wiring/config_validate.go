@@ -5,6 +5,8 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"regexp"
+	"slices"
 	"strconv"
 	"time"
 )
@@ -39,7 +41,8 @@ func validate(cfg *Config) ValidationErrors {
 func validateHost(cfg *Config) ValidationErrors {
 	var errs ValidationErrors
 
-	if cfg.Host.LibvirtURI == "" || !libvirtURIRegex.MatchString(cfg.Host.LibvirtURI) {
+	re := regexp.MustCompile(`^[a-z][a-z0-9+.-]*://`)
+	if cfg.Host.LibvirtURI == "" || !re.MatchString(cfg.Host.LibvirtURI) {
 		errs = append(errs, ValidationError{
 			Field:  "Host.LibvirtURI",
 			Value:  cfg.Host.LibvirtURI,
@@ -179,7 +182,7 @@ func validateLimits(cfg *Config) ValidationErrors {
 func validateLogLevel(cfg *Config) ValidationErrors {
 	var errs ValidationErrors
 
-	if !validLogLevels[cfg.LogLevel] {
+	if !slices.Contains(validLogLevels, cfg.LogLevel) {
 		errs = append(errs, ValidationError{
 			Field:  "LogLevel",
 			Value:  cfg.LogLevel,
@@ -213,15 +216,19 @@ func checkHostPrerequisites(cfg *Config) ValidationErrors {
 	}
 
 	// Ensure data directories exist or can be created.
-	for name, path := range map[string]string{
-		"Paths.BaseImagesDir":   cfg.Paths.BaseImagesDir,
-		"Paths.OverlayDisksDir": cfg.Paths.OverlayDisksDir,
-		"Paths.CloudInitDir":    cfg.Paths.CloudInitDir,
-	} {
-		if err := ensureDir(path); err != nil {
+	dirs := []struct {
+		name string
+		path string
+	}{
+		{"Paths.BaseImagesDir", cfg.Paths.BaseImagesDir},
+		{"Paths.OverlayDisksDir", cfg.Paths.OverlayDisksDir},
+		{"Paths.CloudInitDir", cfg.Paths.CloudInitDir},
+	}
+	for _, d := range dirs {
+		if err := ensureDir(d.path); err != nil {
 			errs = append(errs, ValidationError{
-				Field:  name,
-				Value:  path,
+				Field:  d.name,
+				Value:  d.path,
 				Reason: fmt.Sprintf("cannot create directory: %v", err),
 			})
 		}
@@ -248,6 +255,14 @@ func checkBinary(path, field string, errs *ValidationErrors) {
 			Field:  field,
 			Value:  path,
 			Reason: fmt.Sprintf("binary not found at %q", path),
+		})
+		return
+	}
+	if info.IsDir() {
+		*errs = append(*errs, ValidationError{
+			Field:  field,
+			Value:  path,
+			Reason: fmt.Sprintf("path %q is a directory, not a binary", path),
 		})
 		return
 	}
