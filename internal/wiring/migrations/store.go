@@ -1,5 +1,16 @@
 // Package migrations provides a versioned SQLite migration runner for the
 // wiring layer's metadata and audit schema.
+//
+// The primary type is [Runner], which executes migrations against a database.
+// [Migration] is an exported value type used to construct migrations; it is
+// intentionally exported because [ParseMigration] serves as a factory for
+// programmatic migration construction. [AllMigrations] returns the canonical
+// ordered registry of migrations for this project.
+//
+// R13 note: This package exports more than one primary type by conscious
+// design. Migration and ParseMigration are tightly coupled to Runner and
+// serve as value types and factories. AllMigrations is the project-wide
+// migration registry.
 package migrations
 
 import (
@@ -207,7 +218,31 @@ func (r *Runner) RunDown(version int) error {
 	return nil
 }
 
-// splitStatements splits SQL on semicolons, handling multi-statement SQL files.
+// splitStatements splits SQL on semicolons, correctly handling semicolons
+// inside single-quoted and double-quoted string literals.
 func splitStatements(sql string) []string {
-	return strings.Split(sql, ";")
+	var stmts []string
+	var current strings.Builder
+	inSingleQuote := false
+	inDoubleQuote := false
+
+	for _, ch := range sql {
+		switch {
+		case ch == '\'' && !inDoubleQuote:
+			inSingleQuote = !inSingleQuote
+			current.WriteRune(ch)
+		case ch == '"' && !inSingleQuote:
+			inDoubleQuote = !inDoubleQuote
+			current.WriteRune(ch)
+		case ch == ';' && !inSingleQuote && !inDoubleQuote:
+			stmts = append(stmts, current.String())
+			current.Reset()
+		default:
+			current.WriteRune(ch)
+		}
+	}
+	if rest := strings.TrimSpace(current.String()); rest != "" {
+		stmts = append(stmts, rest)
+	}
+	return stmts
 }

@@ -33,6 +33,11 @@ func run(pass *analysis.Pass) (interface{}, error) {
 		filename := fset.Position(file.Pos()).Filename
 		baseName := filepath.Base(filename)
 
+		// Skip test files — they inherently need to import packages under test.
+		if strings.HasSuffix(baseName, "_test.go") {
+			continue
+		}
+
 		inspect := inspector.New([]*ast.File{file})
 
 		nodeFilter := []ast.Node{

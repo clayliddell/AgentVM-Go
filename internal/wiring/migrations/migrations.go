@@ -8,9 +8,9 @@ import (
 //go:embed sql/*.sql
 var sqlFiles embed.FS
 
-// AllMigrations is the ordered registry of all database migrations.
+// allMigrations is the internal ordered registry of all database migrations.
 // Migrations are executed in slice order — do not reorder.
-var AllMigrations = []*Migration{
+var allMigrations = []*Migration{
 	{
 		Version: 1,
 		Name:    "create_metadata_tables",
@@ -23,6 +23,12 @@ var AllMigrations = []*Migration{
 		UpSQL:   embedSQL("sql/002_create_audit_tables.up.sql"),
 		DownSQL: embedSQL("sql/002_create_audit_tables.down.sql"),
 	},
+}
+
+// AllMigrations returns the ordered registry of all database migrations.
+// Migrations are executed in slice order — do not reorder.
+func AllMigrations() []*Migration {
+	return allMigrations
 }
 
 // embedSQL reads an embedded SQL file and returns its contents as a string.

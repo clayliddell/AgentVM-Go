@@ -63,7 +63,7 @@ func getTables(t *testing.T, db *sql.DB) []string {
 func TestRunner_FreshDatabase(t *testing.T) {
 	db := setupTestDB(t)
 
-	runner, err := NewRunner(db, AllMigrations, testLogger)
+	runner, err := NewRunner(db, AllMigrations(), testLogger)
 	require.NoError(t, err)
 
 	err = runner.Run()
@@ -71,7 +71,7 @@ func TestRunner_FreshDatabase(t *testing.T) {
 
 	// Verify schema_migrations table exists and has all versions.
 	versions := getAppliedVersions(t, db)
-	assert.Len(t, versions, len(AllMigrations))
+	assert.Len(t, versions, len(AllMigrations()))
 	assert.Equal(t, []int{1, 2}, versions)
 
 	// Verify all expected tables exist.
@@ -89,7 +89,7 @@ func TestRunner_FreshDatabase(t *testing.T) {
 func TestRunner_AlreadyMigrated(t *testing.T) {
 	db := setupTestDB(t)
 
-	runner, err := NewRunner(db, AllMigrations, testLogger)
+	runner, err := NewRunner(db, AllMigrations(), testLogger)
 	require.NoError(t, err)
 
 	// First run.
@@ -101,7 +101,7 @@ func TestRunner_AlreadyMigrated(t *testing.T) {
 
 	// Verify no duplicate versions.
 	versions := getAppliedVersions(t, db)
-	assert.Len(t, versions, len(AllMigrations))
+	assert.Len(t, versions, len(AllMigrations()))
 	assert.Equal(t, []int{1, 2}, versions)
 
 	// All tables still exist.
@@ -120,7 +120,7 @@ func TestRunner_PartiallyMigrated(t *testing.T) {
 	db := setupTestDB(t)
 
 	// Manually apply migration 1.
-	_, err := db.Exec(AllMigrations[0].UpSQL)
+	_, err := db.Exec(AllMigrations()[0].UpSQL)
 	require.NoError(t, err)
 
 	// Create schema_migrations and record version 1.
@@ -130,7 +130,7 @@ func TestRunner_PartiallyMigrated(t *testing.T) {
 	require.NoError(t, err)
 
 	// Run full migration.
-	runner, err := NewRunner(db, AllMigrations, testLogger)
+	runner, err := NewRunner(db, AllMigrations(), testLogger)
 	require.NoError(t, err)
 	err = runner.Run()
 	require.NoError(t, err)
@@ -149,7 +149,7 @@ func TestRunner_PartiallyMigrated(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestRunner_NilDB(t *testing.T) {
-	_, err := NewRunner(nil, AllMigrations, testLogger)
+	_, err := NewRunner(nil, AllMigrations(), testLogger)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "db must not be nil")
 }
@@ -189,7 +189,7 @@ func TestRunner_NonSequentialVersions(t *testing.T) {
 func TestRunner_DownMigration(t *testing.T) {
 	db := setupTestDB(t)
 
-	runner, err := NewRunner(db, AllMigrations, testLogger)
+	runner, err := NewRunner(db, AllMigrations(), testLogger)
 	require.NoError(t, err)
 
 	// Apply all migrations.
@@ -215,7 +215,7 @@ func TestRunner_DownMigration(t *testing.T) {
 func TestRunner_DownMigration_NotFound(t *testing.T) {
 	db := setupTestDB(t)
 
-	runner, err := NewRunner(db, AllMigrations, testLogger)
+	runner, err := NewRunner(db, AllMigrations(), testLogger)
 	require.NoError(t, err)
 
 	err = runner.RunDown(99)
@@ -247,7 +247,7 @@ func TestRunner_DownMigration_NoDownSQL(t *testing.T) {
 func TestRunner_GetAppliedVersions_BeforeRun(t *testing.T) {
 	db := setupTestDB(t)
 
-	runner, err := NewRunner(db, AllMigrations, testLogger)
+	runner, err := NewRunner(db, AllMigrations(), testLogger)
 	require.NoError(t, err)
 
 	// Ensure table exists.

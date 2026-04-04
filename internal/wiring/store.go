@@ -25,7 +25,17 @@ func InitializeWiringDB(dbPath string, logger *slog.Logger) (*sql.DB, error) {
 		return nil, fmt.Errorf("failed to open wiring db: %w", err)
 	}
 
-	runner, err := migrations.NewRunner(db, migrations.AllMigrations, logger)
+	// Enable WAL mode for write performance and foreign key enforcement.
+	if _, err := db.Exec("PRAGMA journal_mode=WAL"); err != nil {
+		db.Close()
+		return nil, fmt.Errorf("failed to enable WAL mode: %w", err)
+	}
+	if _, err := db.Exec("PRAGMA foreign_keys=ON"); err != nil {
+		db.Close()
+		return nil, fmt.Errorf("failed to enable foreign keys: %w", err)
+	}
+
+	runner, err := migrations.NewRunner(db, migrations.AllMigrations(), logger)
 	if err != nil {
 		db.Close()
 		return nil, fmt.Errorf("failed to create migration runner: %w", err)
