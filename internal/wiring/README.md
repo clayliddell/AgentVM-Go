@@ -12,6 +12,8 @@ Configuration loading, validation, and component assembly for the AgentVM contro
 | `Config` | Top-level configuration struct containing `Host`, `Paths`, `API`, `Security`, `Limits`, `LogLevel`, and `SkipHostChecks` fields. |
 | `ValidationError` | Structured error type with `Field`, `Value`, and `Reason` fields. |
 | `ValidationErrors` | Slice of `ValidationError` with a human-readable `Error()` method. |
+| `SessionLocker` | Per-session mutex registry that serializes operations on the same session while allowing independent sessions to proceed in parallel. Instantiate with `&SessionLocker{}` and pass to consumers. |
+| `InitializeWiringDB(dbPath string, logger *slog.Logger) (*sql.DB, error)` | Opens the SQLite database, runs all pending migrations, and returns the connection. |
 
 ## Dependencies
 
