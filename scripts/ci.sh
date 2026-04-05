@@ -17,7 +17,7 @@ STAGES=(
     "race:Race Condition Testing (-race flag)"
     "mutation:Mutation Tests (score gate >=90%)"
     "integration:Integration Tests"
-    "security:Security Scanning (gosec + govulncheck)"
+    "security:Security Scanning (secrets + gosec + govulncheck)"
     "budgets:Budget Checks (file size + file count)"
     "e2e:E2E Tests (staging only)"
 )

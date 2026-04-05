@@ -11,6 +11,10 @@ ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$ROOT_DIR"
 
 echo ""
+echo "--- Secret Scan ---"
+"$ROOT_DIR/scripts/secret-scan.sh" repo
+
+echo ""
 echo "--- gosec ---"
 if command -v gosec &>/dev/null; then
     gosec -exclude-generated ./...
