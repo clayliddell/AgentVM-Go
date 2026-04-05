@@ -1,38 +1,61 @@
 package wiring
 
-import "sync"
+import (
+	"fmt"
+	"sync"
+)
 
 // SessionLocker serializes operations on the same session while allowing
 // independent sessions to proceed in parallel.
 //
-// It manages a registry of per-session sync.Mutex instances using sync.Map
-// internally. No package-level mutable state is used — the registry is a
-// field on the struct, instantiated once and passed to consumers.
+// It is zero-value ready. Entries are removed after the last matching Unlock.
+// Unlock panics if called without a matching Lock.
 type SessionLocker struct {
-	mu sync.Map // map[string]*sync.Mutex
+	mu    sync.Mutex
+	locks map[string]*sessionLock
 }
 
-// Lock acquires the mutex for the given session. If the session's mutex
-// does not yet exist, it is created. Callers must call Unlock(sessionID)
-// when done.
+type sessionLock struct {
+	mu   sync.Mutex
+	refs int
+}
+
+// Lock acquires the mutex for the given session. If the session's mutex does
+// not yet exist, it is created. Callers must call Unlock(sessionID) when done.
 //
 // The recommended pattern is:
 //
 //	sl.Lock(sessionID)
 //	defer sl.Unlock(sessionID)
 func (sl *SessionLocker) Lock(sessionID string) {
-	actual, _ := sl.mu.LoadOrStore(sessionID, &sync.Mutex{})
-	mu := actual.(*sync.Mutex)
-	mu.Lock()
+	sl.mu.Lock()
+	if sl.locks == nil {
+		sl.locks = make(map[string]*sessionLock)
+	}
+	entry := sl.locks[sessionID]
+	if entry == nil {
+		entry = &sessionLock{}
+		sl.locks[sessionID] = entry
+	}
+	entry.refs++
+	sl.mu.Unlock()
+
+	entry.mu.Lock()
 }
 
 // Unlock releases the mutex for the given session.
 func (sl *SessionLocker) Unlock(sessionID string) {
-	val, ok := sl.mu.Load(sessionID)
+	sl.mu.Lock()
+	defer sl.mu.Unlock()
+
+	entry, ok := sl.locks[sessionID]
 	if !ok {
-		// Defensive: should not happen if Lock/Unlock are paired correctly.
-		return
+		panic(fmt.Sprintf("unlock of unknown session %q", sessionID))
 	}
-	mu := val.(*sync.Mutex)
-	mu.Unlock()
+
+	entry.mu.Unlock()
+	entry.refs--
+	if entry.refs == 0 {
+		delete(sl.locks, sessionID)
+	}
 }

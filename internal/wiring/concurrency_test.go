@@ -2,7 +2,6 @@ package wiring
 
 import (
 	"sync"
-	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -63,45 +62,43 @@ func TestSessionLocker_LockUnlock_SameSession(t *testing.T) {
 }
 
 // TestSessionLocker_LockUnlock_DifferentSessions verifies that two goroutines
-// locking different sessions proceed in parallel.
+// locking different sessions do not block each other.
 func TestSessionLocker_LockUnlock_DifferentSessions(t *testing.T) {
 	sl := &SessionLocker{}
-	var wg sync.WaitGroup
-	wg.Add(2)
+	firstLocked := make(chan struct{})
+	releaseFirst := make(chan struct{})
+	secondLocked := make(chan struct{})
+	secondDone := make(chan struct{})
 
-	// Track whether both goroutines were running at the same time.
-	var concurrent atomic.Int32
-
-	// Goroutine 1: locks session-1, sleeps 50ms, unlocks.
 	go func() {
-		defer wg.Done()
 		sl.Lock("session-1")
-		time.Sleep(50 * time.Millisecond)
-		concurrent.Add(1)
+		close(firstLocked)
+		<-releaseFirst
 		sl.Unlock("session-1")
 	}()
 
-	// Goroutine 2: locks session-2, sleeps 50ms, unlocks.
+	<-firstLocked
+
 	go func() {
-		defer wg.Done()
-		// Small delay to let goroutine 1 acquire its lock first.
-		time.Sleep(5 * time.Millisecond)
 		sl.Lock("session-2")
-		time.Sleep(50 * time.Millisecond)
-		concurrent.Add(1)
+		close(secondLocked)
 		sl.Unlock("session-2")
+		close(secondDone)
 	}()
 
-	wg.Wait()
-
-	// Both goroutines should have been active concurrently.
-	if concurrent.Load() != 2 {
-		t.Error("expected both goroutines to run concurrently for different sessions")
+	select {
+	case <-secondLocked:
+	case <-time.After(100 * time.Millisecond):
+		t.Fatal("session-2 was blocked by session-1")
 	}
 
-	// Their execution windows should overlap.
-	// session-2 starts after session-1 started but before session-1 ended.
-	// We verify this by checking that both goroutines reported concurrent activity.
+	close(releaseFirst)
+
+	select {
+	case <-secondDone:
+	case <-time.After(100 * time.Millisecond):
+		t.Fatal("session-2 goroutine did not finish")
+	}
 }
 
 // TestSessionLocker_ConcurrentCreateDestroy simulates a create and destroy
@@ -243,11 +240,16 @@ func TestSessionLocker_EmptySessionID(t *testing.T) {
 	}
 }
 
-// TestSessionLocker_UnlockWithoutLock verifies that calling Unlock on a
-// session that was never locked does not panic.
+// TestSessionLocker_UnlockWithoutLock verifies that calling Unlock without a
+// matching Lock fails fast.
 func TestSessionLocker_UnlockWithoutLock(t *testing.T) {
 	sl := &SessionLocker{}
-	// Should not panic.
+	defer func() {
+		if recover() == nil {
+			t.Fatal("expected Unlock to panic without a matching Lock")
+		}
+	}()
+
 	sl.Unlock("nonexistent-session")
 }
 
@@ -278,38 +280,18 @@ func TestSessionLocker_MultipleGoroutinesSameSession(t *testing.T) {
 	}
 }
 
-// TestSessionLocker_MultipleGoroutinesDifferentSessions verifies that many
-// goroutines locking different sessions proceed in parallel.
-func TestSessionLocker_MultipleGoroutinesDifferentSessions(t *testing.T) {
+// TestSessionLocker_UnlockRemovesEntry verifies that the session entry is
+// cleaned up after the final Unlock.
+func TestSessionLocker_UnlockRemovesEntry(t *testing.T) {
 	sl := &SessionLocker{}
-	const goroutines = 10
-	var wg sync.WaitGroup
-	wg.Add(goroutines)
 
-	var completed atomic.Int32
-
-	start := time.Now()
-	for i := 0; i < goroutines; i++ {
-		go func(id int) {
-			defer wg.Done()
-			sessionID := "session-" + string(rune('0'+id))
-			sl.Lock(sessionID)
-			time.Sleep(20 * time.Millisecond)
-			sl.Unlock(sessionID)
-			completed.Add(1)
-		}(i)
+	sl.Lock("session-1")
+	if got := len(sl.locks); got != 1 {
+		t.Fatalf("expected 1 session entry after Lock, got %d", got)
 	}
 
-	wg.Wait()
-	elapsed := time.Since(start)
-
-	if completed.Load() != goroutines {
-		t.Errorf("expected %d completions, got %d", goroutines, completed.Load())
-	}
-
-	// If running in parallel, total elapsed time should be ~20ms (not 200ms).
-	// Allow generous margin for CI environments.
-	if elapsed > 200*time.Millisecond {
-		t.Errorf("expected parallel execution to complete in ~20ms, took %v", elapsed)
+	sl.Unlock("session-1")
+	if got := len(sl.locks); got != 0 {
+		t.Fatalf("expected session entry to be removed after Unlock, got %d", got)
 	}
 }

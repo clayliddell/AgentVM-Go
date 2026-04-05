@@ -33,3 +33,6 @@ go.work.sum
 
 # OpenCode
 opencode.json
+
+# Tool caches
+.ruff_cache/
