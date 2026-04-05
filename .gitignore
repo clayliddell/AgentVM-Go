@@ -1,5 +1,35 @@
-/env
-coverage.out
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+bin/
+
+# Test binary, built with `go test -c`
+*.test
+
+# Code coverage profiles and other test artifacts
+*.out
+coverage.*
+*.coverprofile
+profile.cov
 report.json
-tools/analyzers/bin
+
+# Dependency directories
+vendor/
+
+# Go workspace file
+go.work
+go.work.sum
+
+# env files
+/env
+.env
+
+# Editor/IDE
+.idea/
+.vscode/
+
+# OpenCode
 opencode.json
