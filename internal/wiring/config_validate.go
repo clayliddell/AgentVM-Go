@@ -287,7 +287,7 @@ func ensureDir(path string) error {
 		return fmt.Errorf("path exists but is not a directory: %s", path)
 	}
 	if os.IsNotExist(err) {
-		if err := os.MkdirAll(path, 0755); err != nil {
+		if err := os.MkdirAll(path, 0750); err != nil {
 			return err
 		}
 	} else if err != nil {

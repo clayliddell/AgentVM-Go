@@ -1,3 +1,5 @@
+version: "2"
+
 run:
   timeout: 5m
   modules-download-mode: readonly
@@ -10,8 +12,6 @@ linters:
     - gosec
     - ineffassign
     - unused
-    - gosimple
-    - typecheck
     - gocritic
     - revive
     - forbidigo
@@ -48,6 +48,7 @@ issues:
 
 output:
   formats:
-    - format: colored-line-number
-  print-issued-lines: true
-  print-linter-name: true
+    text:
+      path: stdout
+      print-issued-lines: true
+      print-linter-name: true

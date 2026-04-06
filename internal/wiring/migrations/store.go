@@ -45,16 +45,18 @@ func NewRunner(db *sql.DB, migrations []*Migration, logger Logger) (*Runner, err
 	}
 
 	// Validate each migration and ensure sequential ordering.
+	var prev *Migration
 	for i, m := range migrations {
 		if err := m.Validate(); err != nil {
 			return nil, fmt.Errorf("migrations: invalid migration at index %d: %w", i, err)
 		}
-		if i > 0 && m.Version != migrations[i-1].Version+1 {
+		if prev != nil && m.Version != prev.Version+1 {
 			return nil, fmt.Errorf(
 				"migrations: expected version %d at index %d, got %d",
-				migrations[i-1].Version+1, i, m.Version,
+				prev.Version+1, i, m.Version,
 			)
 		}
+		prev = m
 	}
 
 	return &Runner{
@@ -86,7 +88,7 @@ func (r *Runner) GetAppliedVersions() ([]int, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to query applied migrations: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var versions []int
 	for rows.Next() {

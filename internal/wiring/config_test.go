@@ -43,14 +43,14 @@ func cleanEnv(t *testing.T) {
 	for _, kv := range orig {
 		if strings.HasPrefix(kv, "AGENTVM_") {
 			k := strings.SplitN(kv, "=", 2)[0]
-			os.Unsetenv(k)
+			_ = os.Unsetenv(k)
 		}
 	}
 	t.Cleanup(func() {
 		for _, kv := range orig {
 			if strings.HasPrefix(kv, "AGENTVM_") {
 				parts := strings.SplitN(kv, "=", 2)
-				os.Setenv(parts[0], parts[1])
+				_ = os.Setenv(parts[0], parts[1])
 			}
 		}
 	})
@@ -545,7 +545,7 @@ func TestConfig_Load_TLSConfigIncomplete(t *testing.T) {
 
 	// Create a cert file but no key file
 	certPath := filepath.Join(dir, "cert.pem")
-	if err := os.WriteFile(certPath, []byte("cert-data"), 0644); err != nil {
+	if err := os.WriteFile(certPath, []byte("cert-data"), 0600); err != nil {
 		t.Fatalf("failed to write cert file: %v", err)
 	}
 
@@ -585,7 +585,7 @@ func TestConfig_Load_TLSConfigComplete(t *testing.T) {
 
 	certPath := filepath.Join(dir, "cert.pem")
 	keyPath := filepath.Join(dir, "key.pem")
-	if err := os.WriteFile(certPath, []byte("cert-data"), 0644); err != nil {
+	if err := os.WriteFile(certPath, []byte("cert-data"), 0600); err != nil {
 		t.Fatalf("failed to write cert file: %v", err)
 	}
 	if err := os.WriteFile(keyPath, []byte("key-data"), 0600); err != nil {
@@ -971,7 +971,7 @@ func TestConfig_Load_EnvOverrides_AllFields(t *testing.T) {
 
 	dir := t.TempDir()
 	socketPath := filepath.Join(dir, "libvirt-sock")
-	if err := os.WriteFile(socketPath, []byte{}, 0644); err != nil {
+	if err := os.WriteFile(socketPath, []byte{}, 0600); err != nil {
 		t.Fatalf("failed to create socket file: %v", err)
 	}
 
@@ -1080,7 +1080,7 @@ func TestConfig_Load_InvalidJSON(t *testing.T) {
 	if _, err := f.WriteString("{not valid json"); err != nil {
 		t.Fatalf("failed to write: %v", err)
 	}
-	f.Close()
+	_ = f.Close()
 
 	cfg, err := Load(f.Name())
 	if err == nil {
@@ -1116,7 +1116,7 @@ func TestConfig_Load_BinaryNotExecutable(t *testing.T) {
 
 	dir := t.TempDir()
 	binPath := filepath.Join(dir, "qemu-img")
-	if err := os.WriteFile(binPath, []byte("#!/bin/sh\necho ok"), 0644); err != nil {
+	if err := os.WriteFile(binPath, []byte("#!/bin/sh\necho ok"), 0600); err != nil {
 		t.Fatalf("failed to write fake binary: %v", err)
 	}
 
@@ -1152,7 +1152,7 @@ func TestConfig_Load_PathIsFile(t *testing.T) {
 	dir := t.TempDir()
 	// Create a file where a directory is expected.
 	filePath := filepath.Join(dir, "not-a-dir")
-	if err := os.WriteFile(filePath, []byte("data"), 0644); err != nil {
+	if err := os.WriteFile(filePath, []byte("data"), 0600); err != nil {
 		t.Fatalf("failed to create file: %v", err)
 	}
 
@@ -1189,14 +1189,14 @@ func TestConfig_Load_EnvTLSEnabled(t *testing.T) {
 	dir := t.TempDir()
 	certPath := filepath.Join(dir, "cert.pem")
 	keyPath := filepath.Join(dir, "key.pem")
-	if err := os.WriteFile(certPath, []byte("cert"), 0644); err != nil {
+	if err := os.WriteFile(certPath, []byte("cert"), 0600); err != nil {
 		t.Fatalf("failed to write cert: %v", err)
 	}
 	if err := os.WriteFile(keyPath, []byte("key"), 0600); err != nil {
 		t.Fatalf("failed to write key: %v", err)
 	}
 	socketPath := filepath.Join(dir, "libvirt-sock")
-	if err := os.WriteFile(socketPath, []byte{}, 0644); err != nil {
+	if err := os.WriteFile(socketPath, []byte{}, 0600); err != nil {
 		t.Fatalf("failed to create socket: %v", err)
 	}
 
@@ -1495,12 +1495,12 @@ func TestConfig_Load_EnsureDirError(t *testing.T) {
 
 	dir := t.TempDir()
 	filePath := filepath.Join(dir, "blocked")
-	if err := os.WriteFile(filePath, []byte("x"), 0644); err != nil {
+	if err := os.WriteFile(filePath, []byte("x"), 0600); err != nil {
 		t.Fatalf("failed to create file: %v", err)
 	}
 
 	socketPath := filepath.Join(dir, "libvirt-sock")
-	if err := os.WriteFile(socketPath, []byte{}, 0644); err != nil {
+	if err := os.WriteFile(socketPath, []byte{}, 0600); err != nil {
 		t.Fatalf("failed to create socket file: %v", err)
 	}
 
@@ -1554,7 +1554,7 @@ func TestConfig_Load_InvalidJSON_MessageContent(t *testing.T) {
 	if _, err := f.WriteString("{not valid json"); err != nil {
 		t.Fatalf("failed to write: %v", err)
 	}
-	f.Close()
+	_ = f.Close()
 
 	_, err = Load(f.Name())
 	if err == nil {
@@ -1801,7 +1801,7 @@ func TestConfig_Load_EnvOverrides_VerifyValues(t *testing.T) {
 
 	dir := t.TempDir()
 	socketPath := filepath.Join(dir, "libvirt-sock")
-	if err := os.WriteFile(socketPath, []byte{}, 0644); err != nil {
+	if err := os.WriteFile(socketPath, []byte{}, 0600); err != nil {
 		t.Fatalf("failed to create socket file: %v", err)
 	}
 
@@ -2663,12 +2663,12 @@ func TestConfig_Load_ValidationError_Content_DirCreateError(t *testing.T) {
 
 	dir := t.TempDir()
 	filePath := filepath.Join(dir, "not-a-dir")
-	if err := os.WriteFile(filePath, []byte("data"), 0644); err != nil {
+	if err := os.WriteFile(filePath, []byte("data"), 0600); err != nil {
 		t.Fatalf("failed to create file: %v", err)
 	}
 
 	socketPath := filepath.Join(dir, "libvirt-sock")
-	if err := os.WriteFile(socketPath, []byte{}, 0644); err != nil {
+	if err := os.WriteFile(socketPath, []byte{}, 0600); err != nil {
 		t.Fatalf("failed to create socket file: %v", err)
 	}
 
@@ -3400,12 +3400,12 @@ func TestConfig_Load_ValidationError_Count_DirCreateError(t *testing.T) {
 
 	dir := t.TempDir()
 	filePath := filepath.Join(dir, "not-a-dir")
-	if err := os.WriteFile(filePath, []byte("data"), 0644); err != nil {
+	if err := os.WriteFile(filePath, []byte("data"), 0600); err != nil {
 		t.Fatalf("failed to create file: %v", err)
 	}
 
 	socketPath := filepath.Join(dir, "libvirt-sock")
-	if err := os.WriteFile(socketPath, []byte{}, 0644); err != nil {
+	if err := os.WriteFile(socketPath, []byte{}, 0600); err != nil {
 		t.Fatalf("failed to create socket file: %v", err)
 	}
 
@@ -3457,7 +3457,7 @@ func TestConfig_Load_ValidationError_Count_InvalidJSON(t *testing.T) {
 	if _, err := f.WriteString("{not valid json"); err != nil {
 		t.Fatalf("failed to write: %v", err)
 	}
-	f.Close()
+	_ = f.Close()
 
 	_, err = Load(f.Name())
 	if err == nil {

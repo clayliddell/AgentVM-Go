@@ -22,7 +22,7 @@ func setupTestDB(t *testing.T) *sql.DB {
 	t.Helper()
 	db, err := sql.Open("sqlite", ":memory:")
 	require.NoError(t, err)
-	t.Cleanup(func() { db.Close() })
+	t.Cleanup(func() { _ = db.Close() })
 	return db
 }
 
@@ -30,7 +30,7 @@ func getAppliedVersions(t *testing.T, db *sql.DB) []int {
 	t.Helper()
 	rows, err := db.Query("SELECT version FROM schema_migrations ORDER BY version")
 	require.NoError(t, err)
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var versions []int
 	for rows.Next() {
@@ -45,7 +45,7 @@ func getTables(t *testing.T, db *sql.DB) []string {
 	t.Helper()
 	rows, err := db.Query("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
 	require.NoError(t, err)
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var tables []string
 	for rows.Next() {

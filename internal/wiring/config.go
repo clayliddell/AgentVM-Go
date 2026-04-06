@@ -124,7 +124,6 @@ func (ve ValidationErrors) Error() string {
 	return strings.TrimRight(b.String(), "\n")
 }
 
-// ---------------------------------------------------------------------------
 // Load reads configuration from a JSON file (if source is non-empty) and
 // environment variables, applies defaults, validates, and returns the config.
 // Environment variables take precedence over file values.
@@ -230,7 +229,7 @@ func applyDefaults(cfg *Config) {
 // ---------------------------------------------------------------------------
 // loadFromFile reads a JSON config file and merges into cfg.
 func loadFromFile(configPath string, cfg *Config) error {
-	data, err := os.ReadFile(configPath)
+	data, err := os.ReadFile(configPath) // #nosec G304 -- configPath is operator-provided input
 	if err != nil {
 		return err
 	}

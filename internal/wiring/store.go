@@ -7,6 +7,7 @@ import (
 
 	"agentvm/internal/wiring/migrations"
 
+	// Register the SQLite driver for database/sql.
 	_ "modernc.org/sqlite"
 )
 
@@ -27,22 +28,22 @@ func InitializeWiringDB(dbPath string, logger *slog.Logger) (*sql.DB, error) {
 
 	// Enable WAL mode for write performance and foreign key enforcement.
 	if _, err := db.Exec("PRAGMA journal_mode=WAL"); err != nil {
-		db.Close()
+		_ = db.Close()
 		return nil, fmt.Errorf("failed to enable WAL mode: %w", err)
 	}
 	if _, err := db.Exec("PRAGMA foreign_keys=ON"); err != nil {
-		db.Close()
+		_ = db.Close()
 		return nil, fmt.Errorf("failed to enable foreign keys: %w", err)
 	}
 
 	runner, err := migrations.NewRunner(db, migrations.AllMigrations(), logger)
 	if err != nil {
-		db.Close()
+		_ = db.Close()
 		return nil, fmt.Errorf("failed to create migration runner: %w", err)
 	}
 
 	if err := runner.Run(); err != nil {
-		db.Close()
+		_ = db.Close()
 		return nil, fmt.Errorf("wiring db migration failed: %w", err)
 	}
 
