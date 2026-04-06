@@ -57,52 +57,67 @@ fi
 
 GREMLINS_ARGS+=(--workers "$MUTATION_WORKERS" --test-cpu "$MUTATION_TEST_CPU")
 
-echo ""
-echo "Running mutation tests..."
+run_mutation_stage() {
+    local stage_dir="$1"
+    local stage_name="$2"
+    shift 2
 
-if command -v gremlins &>/dev/null; then
-    GREMLINS_OUTPUT=""
-    set +e
-    GREMLINS_OUTPUT="$(gremlins unleash "${GREMLINS_ARGS[@]}" --timeout-coefficient=3 --threshold-mcover "$MIN_MUTATION_SCORE" --threshold-efficacy "$MIN_MUTATION_SCORE" 2>&1)"
-    GREMLINS_STATUS=$?
-    set -e
-
-    printf '%s\n' "$GREMLINS_OUTPUT"
-
-    MUTATOR_COVERAGE="$(printf '%s\n' "$GREMLINS_OUTPUT" | awk -F': ' '/Mutator coverage:/ {gsub(/%/, "", $2); print $2; exit}')"
-    TEST_EFFICACY="$(printf '%s\n' "$GREMLINS_OUTPUT" | awk -F': ' '/Test efficacy:/ {gsub(/%/, "", $2); print $2; exit}')"
-
-    if [ "$GREMLINS_STATUS" -ne 0 ]; then
-        echo ""
-        echo "Mutation test stage: FAILED"
-        exit "$GREMLINS_STATUS"
-    fi
-
-    if [ -z "$MUTATOR_COVERAGE" ] || [ -z "$TEST_EFFICACY" ]; then
-        echo ""
-        echo "FAIL: Unable to parse gremlins mutation metrics"
-        echo "Mutation test stage: FAILED"
-        exit 1
-    fi
-
-    if ! awk -v actual="$MUTATOR_COVERAGE" -v minimum="$MIN_MUTATION_SCORE" 'BEGIN { exit !(actual + 0 >= minimum + 0) }'; then
-        echo ""
-        echo "FAIL: Mutator coverage ${MUTATOR_COVERAGE}% is below minimum ${MIN_MUTATION_SCORE}%"
-        echo "Mutation test stage: FAILED"
-        exit 1
-    fi
-
-    if ! awk -v actual="$TEST_EFFICACY" -v minimum="$MIN_MUTATION_SCORE" 'BEGIN { exit !(actual + 0 >= minimum + 0) }'; then
-        echo ""
-        echo "FAIL: Test efficacy ${TEST_EFFICACY}% is below minimum ${MIN_MUTATION_SCORE}%"
-        echo "Mutation test stage: FAILED"
-        exit 1
-    fi
+    local stage_extra_args=("$@")
+    local gremlins_output=""
+    local gremlins_status=0
+    local mutator_coverage=""
+    local test_efficacy=""
 
     echo ""
-    echo "Mutation test stage: PASSED"
-else
-    echo "WARNING: gremlins not installed, skipping mutation tests"
-    echo "Install from: https://github.com/go-gremlins/gremlins"
-    echo "Mutation test stage: SKIPPED"
-fi
+    echo "Running mutation tests (${stage_name})..."
+
+    if command -v gremlins &>/dev/null; then
+        set +e
+        gremlins_output="$(cd "$stage_dir" && gremlins unleash . "${stage_extra_args[@]}" "${GREMLINS_ARGS[@]}" --timeout-coefficient=3 --threshold-mcover "$MIN_MUTATION_SCORE" --threshold-efficacy "$MIN_MUTATION_SCORE" 2>&1)"
+        gremlins_status=$?
+        set -e
+
+        printf '%s\n' "$gremlins_output"
+
+        mutator_coverage="$(printf '%s\n' "$gremlins_output" | awk -F': ' '/Mutator coverage:/ {gsub(/%/, "", $2); print $2; exit}')"
+        test_efficacy="$(printf '%s\n' "$gremlins_output" | awk -F': ' '/Test efficacy:/ {gsub(/%/, "", $2); print $2; exit}')"
+
+        if [ "$gremlins_status" -ne 0 ]; then
+            echo ""
+            echo "Mutation test stage (${stage_name}): FAILED"
+            exit "$gremlins_status"
+        fi
+
+        if [ -z "$mutator_coverage" ] || [ -z "$test_efficacy" ]; then
+            echo ""
+            echo "FAIL: Unable to parse gremlins mutation metrics for ${stage_name}"
+            echo "Mutation test stage (${stage_name}): FAILED"
+            exit 1
+        fi
+
+        if ! awk -v actual="$mutator_coverage" -v minimum="$MIN_MUTATION_SCORE" 'BEGIN { exit !(actual + 0 >= minimum + 0) }'; then
+            echo ""
+            echo "FAIL: Mutator coverage ${mutator_coverage}% is below minimum ${MIN_MUTATION_SCORE}% (${stage_name})"
+            echo "Mutation test stage (${stage_name}): FAILED"
+            exit 1
+        fi
+
+        if ! awk -v actual="$test_efficacy" -v minimum="$MIN_MUTATION_SCORE" 'BEGIN { exit !(actual + 0 >= minimum + 0) }'; then
+            echo ""
+            echo "FAIL: Test efficacy ${test_efficacy}% is below minimum ${MIN_MUTATION_SCORE}% (${stage_name})"
+            echo "Mutation test stage (${stage_name}): FAILED"
+            exit 1
+        fi
+
+        echo ""
+        echo "Mutation test stage (${stage_name}): PASSED"
+    else
+        echo "WARNING: gremlins not installed, skipping mutation tests (${stage_name})"
+        echo "Install from: https://github.com/go-gremlins/gremlins"
+        echo "Mutation test stage (${stage_name}): SKIPPED"
+    fi
+}
+
+echo ""
+run_mutation_stage "$ROOT_DIR" "root" --exclude-files '^tools/analyzers/'
+run_mutation_stage "$ROOT_DIR/tools/analyzers" "analyzers" --coverpkg ./...
