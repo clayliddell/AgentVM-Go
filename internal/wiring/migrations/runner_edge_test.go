@@ -11,9 +11,9 @@ type captureLogger struct {
 	informations []string
 }
 
-func (l *captureLogger) Info(msg string, args ...any)  { l.informations = append(l.informations, msg) }
-func (l *captureLogger) Warn(msg string, args ...any)  {}
-func (l *captureLogger) Error(msg string, args ...any) {}
+func (l *captureLogger) Info(msg string, _ ...any) { l.informations = append(l.informations, msg) }
+func (l *captureLogger) Warn(_ string, _ ...any)   {}
+func (l *captureLogger) Error(_ string, _ ...any)  {}
 
 func TestRunner_LogsAppliedAndSkippedMigrations(t *testing.T) {
 	db := setupTestDB(t)
