@@ -61,7 +61,43 @@ echo ""
 echo "Running mutation tests..."
 
 if command -v gremlins &>/dev/null; then
-    gremlins unleash "${GREMLINS_ARGS[@]}" --timeout-coefficient=3 --threshold-efficacy "$MIN_MUTATION_SCORE"
+    GREMLINS_OUTPUT=""
+    set +e
+    GREMLINS_OUTPUT="$(gremlins unleash "${GREMLINS_ARGS[@]}" --timeout-coefficient=3 --threshold-mcover "$MIN_MUTATION_SCORE" --threshold-efficacy "$MIN_MUTATION_SCORE" 2>&1)"
+    GREMLINS_STATUS=$?
+    set -e
+
+    printf '%s\n' "$GREMLINS_OUTPUT"
+
+    MUTATOR_COVERAGE="$(printf '%s\n' "$GREMLINS_OUTPUT" | awk -F': ' '/Mutator coverage:/ {gsub(/%/, "", $2); print $2; exit}')"
+    TEST_EFFICACY="$(printf '%s\n' "$GREMLINS_OUTPUT" | awk -F': ' '/Test efficacy:/ {gsub(/%/, "", $2); print $2; exit}')"
+
+    if [ "$GREMLINS_STATUS" -ne 0 ]; then
+        echo ""
+        echo "Mutation test stage: FAILED"
+        exit "$GREMLINS_STATUS"
+    fi
+
+    if [ -z "$MUTATOR_COVERAGE" ] || [ -z "$TEST_EFFICACY" ]; then
+        echo ""
+        echo "FAIL: Unable to parse gremlins mutation metrics"
+        echo "Mutation test stage: FAILED"
+        exit 1
+    fi
+
+    if ! awk -v actual="$MUTATOR_COVERAGE" -v minimum="$MIN_MUTATION_SCORE" 'BEGIN { exit !(actual + 0 >= minimum + 0) }'; then
+        echo ""
+        echo "FAIL: Mutator coverage ${MUTATOR_COVERAGE}% is below minimum ${MIN_MUTATION_SCORE}%"
+        echo "Mutation test stage: FAILED"
+        exit 1
+    fi
+
+    if ! awk -v actual="$TEST_EFFICACY" -v minimum="$MIN_MUTATION_SCORE" 'BEGIN { exit !(actual + 0 >= minimum + 0) }'; then
+        echo ""
+        echo "FAIL: Test efficacy ${TEST_EFFICACY}% is below minimum ${MIN_MUTATION_SCORE}%"
+        echo "Mutation test stage: FAILED"
+        exit 1
+    fi
 
     echo ""
     echo "Mutation test stage: PASSED"
