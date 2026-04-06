@@ -87,6 +87,18 @@ func TestRunner_TableHelpersErrorOnClosedDB(t *testing.T) {
 	require.Error(t, err)
 }
 
+func TestRunner_RunErrorOnClosedDB(t *testing.T) {
+	db := setupTestDB(t)
+	runner, err := NewRunner(db, AllMigrations(), testLogger)
+	require.NoError(t, err)
+
+	require.NoError(t, db.Close())
+
+	err = runner.Run()
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to create schema_migrations table")
+}
+
 func TestRunner_ApplyMigrationBeginError(t *testing.T) {
 	db := setupTestDB(t)
 	runner, err := NewRunner(db, []*Migration{{
@@ -128,6 +140,35 @@ func TestRunner_ApplyMigrationRecordError(t *testing.T) {
 	err = runner.applyMigration(runner.migrations[0])
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to record migration version")
+}
+
+func TestRunner_ApplyMigrationCommitError(t *testing.T) {
+	db := setupTestDB(t)
+	_, err := db.Exec(`PRAGMA foreign_keys = ON`)
+	require.NoError(t, err)
+	_, err = db.Exec(`CREATE TABLE schema_migrations (
+		version INTEGER PRIMARY KEY,
+		name TEXT NOT NULL,
+		applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+	)`)
+	require.NoError(t, err)
+
+	runner, err := NewRunner(db, []*Migration{{
+		Version: 1,
+		Name:    "commit_error",
+		UpSQL: `CREATE TABLE parent (id INTEGER PRIMARY KEY);
+CREATE TABLE child (
+	id INTEGER PRIMARY KEY,
+	parent_id INTEGER,
+	FOREIGN KEY(parent_id) REFERENCES parent(id) DEFERRABLE INITIALLY DEFERRED
+);
+INSERT INTO child (id, parent_id) VALUES (1, 99);`,
+	}}, testLogger)
+	require.NoError(t, err)
+
+	err = runner.applyMigration(runner.migrations[0])
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to commit migration")
 }
 
 func TestRunner_GetAppliedVersionsScanError(t *testing.T) {
@@ -186,6 +227,66 @@ func TestRunner_RunDownDeleteError(t *testing.T) {
 
 	tables := getTables(t, db)
 	assert.Contains(t, tables, "down_delete_error")
+}
+
+func TestRunner_RunDownCommitError(t *testing.T) {
+	db := setupTestDB(t)
+	_, err := db.Exec(`PRAGMA foreign_keys = ON`)
+	require.NoError(t, err)
+	_, err = db.Exec(`CREATE TABLE schema_migrations (
+		version INTEGER PRIMARY KEY,
+		name TEXT NOT NULL,
+		applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+	)`)
+	require.NoError(t, err)
+	_, err = db.Exec(`CREATE TABLE parent (id INTEGER PRIMARY KEY)`)
+	require.NoError(t, err)
+	_, err = db.Exec(`CREATE TABLE child (
+		id INTEGER PRIMARY KEY,
+		parent_id INTEGER,
+		FOREIGN KEY(parent_id) REFERENCES parent(id) DEFERRABLE INITIALLY DEFERRED
+	)`)
+	require.NoError(t, err)
+	_, err = db.Exec(`INSERT INTO parent (id) VALUES (1)`)
+	require.NoError(t, err)
+	_, err = db.Exec(`INSERT INTO child (id, parent_id) VALUES (1, 1)`)
+	require.NoError(t, err)
+	_, err = db.Exec(`INSERT INTO schema_migrations (version, name) VALUES (1, 'rollback_error')`)
+	require.NoError(t, err)
+
+	runner, err := NewRunner(db, []*Migration{{
+		Version: 1,
+		Name:    "rollback_error",
+		UpSQL:   "CREATE TABLE rollback_error (id INTEGER PRIMARY KEY)",
+		DownSQL: "DELETE FROM parent WHERE id = 1",
+	}}, testLogger)
+	require.NoError(t, err)
+
+	err = runner.RunDown(1)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to commit rollback")
+}
+
+func TestRunner_RunDownNotApplied(t *testing.T) {
+	db := setupTestDB(t)
+	_, err := db.Exec(`CREATE TABLE schema_migrations (
+		version INTEGER PRIMARY KEY,
+		name TEXT NOT NULL,
+		applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+	)`)
+	require.NoError(t, err)
+
+	runner, err := NewRunner(db, []*Migration{{
+		Version: 1,
+		Name:    "never_applied",
+		UpSQL:   "CREATE TABLE never_applied (id INTEGER PRIMARY KEY)",
+		DownSQL: "DROP TABLE never_applied",
+	}}, testLogger)
+	require.NoError(t, err)
+
+	err = runner.RunDown(1)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "has not been applied")
 }
 
 func TestSplitStatements_QuotedSemicolons(t *testing.T) {

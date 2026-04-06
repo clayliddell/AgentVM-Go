@@ -25,6 +25,19 @@ func TestInitializeWiringDB(t *testing.T) {
 	}
 }
 
+func TestInitializeWiringDBInvalidPath(t *testing.T) {
+	dbPath := filepath.Join(t.TempDir(), "missing", "wiring.db")
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+
+	db, err := InitializeWiringDB(dbPath, logger)
+	if err == nil {
+		if db != nil {
+			_ = db.Close()
+		}
+		t.Fatal("expected error for invalid database path")
+	}
+}
+
 func requireTable(t *testing.T, db *sql.DB, name string) error {
 	t.Helper()
 	var found string
