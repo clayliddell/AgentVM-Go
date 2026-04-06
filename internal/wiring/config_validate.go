@@ -181,6 +181,7 @@ func validateLimits(cfg *Config) ValidationErrors {
 
 func validateLogLevel(cfg *Config) ValidationErrors {
 	var errs ValidationErrors
+	validLogLevels := []string{"debug", "info", "warn", "error"}
 
 	if !slices.Contains(validLogLevels, cfg.LogLevel) {
 		errs = append(errs, ValidationError{
@@ -276,7 +277,7 @@ func checkBinary(path, field string, errs *ValidationErrors) {
 	}
 }
 
-// ensureDir creates a directory if it doesn't exist.
+// ensureDir creates a directory if it doesn't exist and verifies it is writable.
 func ensureDir(path string) error {
 	info, err := os.Stat(path)
 	if err == nil {
@@ -286,7 +287,25 @@ func ensureDir(path string) error {
 		return fmt.Errorf("path exists but is not a directory: %s", path)
 	}
 	if os.IsNotExist(err) {
-		return os.MkdirAll(path, 0755)
+		if err := os.MkdirAll(path, 0755); err != nil {
+			return err
+		}
+	} else if err != nil {
+		return err
 	}
-	return err
+
+	testFile, err := os.CreateTemp(path, ".agentvm-write-test-*")
+	if err != nil {
+		return fmt.Errorf("directory is not writable: %w", err)
+	}
+	name := testFile.Name()
+	if closeErr := testFile.Close(); closeErr != nil {
+		_ = os.Remove(name)
+		return closeErr
+	}
+	if removeErr := os.Remove(name); removeErr != nil {
+		return removeErr
+	}
+
+	return nil
 }

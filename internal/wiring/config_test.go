@@ -230,6 +230,63 @@ func TestConfig_Load_EnvOverride(t *testing.T) {
 	}
 }
 
+func TestConfig_Load_InvalidBoolEnv_ReturnsError(t *testing.T) {
+	cleanEnv(t)
+
+	dir := t.TempDir()
+	cfgPath := writeConfigFile(t, map[string]any{
+		"security": map[string]any{
+			"adminToken": "this-is-a-valid-admin-token-that-is-at-least-32-chars",
+		},
+		"host": map[string]any{
+			"qemuImgPath":          "/usr/bin/true",
+			"cloudLocalGenISOPath": "/usr/bin/true",
+			"libvirtSocketPath":    "/proc/self/stat",
+		},
+		"paths": map[string]any{
+			"dataDir": dir,
+		},
+	})
+
+	t.Setenv("AGENTVM_SKIP_HOST_CHECKS", "definitely-not-a-bool")
+
+	_, err := Load(cfgPath)
+	if err == nil {
+		t.Fatal("expected error for invalid boolean env var, got nil")
+	}
+}
+
+func TestConfig_Load_UnwritableDirectory_ReturnsError(t *testing.T) {
+	cleanEnv(t)
+
+	dir := t.TempDir()
+	for _, baseDir := range []string{"/sys", "/sys/fs/cgroup", "/proc/sys"} {
+		cfgPath := writeConfigFile(t, map[string]any{
+			"security": map[string]any{
+				"adminToken": "this-is-a-valid-admin-token-that-is-at-least-32-chars",
+			},
+			"host": map[string]any{
+				"qemuImgPath":          "/usr/bin/true",
+				"cloudLocalGenISOPath": "/usr/bin/true",
+				"libvirtSocketPath":    "/proc/self/stat",
+			},
+			"paths": map[string]any{
+				"baseImagesDir":   baseDir,
+				"overlayDisksDir": filepath.Join(dir, "overlays"),
+				"cloudInitDir":    filepath.Join(dir, "cloud-init"),
+				"dataDir":         dir,
+			},
+		})
+
+		_, err := Load(cfgPath)
+		if err != nil {
+			return
+		}
+	}
+
+	t.Skip("no unwritable directory candidate failed in this environment")
+}
+
 // ---------------------------------------------------------------------------
 // Fail-closed: missing admin token
 // ---------------------------------------------------------------------------

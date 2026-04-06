@@ -125,12 +125,6 @@ func (ve ValidationErrors) Error() string {
 }
 
 // ---------------------------------------------------------------------------
-// Valid log levels
-// ---------------------------------------------------------------------------
-
-var validLogLevels = []string{"debug", "info", "warn", "error"}
-
-// ---------------------------------------------------------------------------
 // Load reads configuration from a JSON file (if source is non-empty) and
 // environment variables, applies defaults, validates, and returns the config.
 // Environment variables take precedence over file values.
@@ -406,7 +400,11 @@ func loadFromEnv(cfg *Config) error {
 		cfg.Security.TLSKeyPath = v
 	}
 	if v := os.Getenv("AGENTVM_SECURITY_TLS_ENABLED"); v != "" {
-		cfg.Security.TLSEnabled = strings.ToLower(v) == "true"
+		b, err := strconv.ParseBool(v)
+		if err != nil {
+			return fmt.Errorf("AGENTVM_SECURITY_TLS_ENABLED: invalid boolean %q: %w", v, err)
+		}
+		cfg.Security.TLSEnabled = b
 	}
 
 	if v := os.Getenv("AGENTVM_LIMITS_MAX_CONCURRENT_VMS"); v != "" {
@@ -443,7 +441,11 @@ func loadFromEnv(cfg *Config) error {
 	}
 
 	if v := os.Getenv("AGENTVM_SKIP_HOST_CHECKS"); v != "" {
-		cfg.SkipHostChecks = strings.ToLower(v) == "true"
+		b, err := strconv.ParseBool(v)
+		if err != nil {
+			return fmt.Errorf("AGENTVM_SKIP_HOST_CHECKS: invalid boolean %q: %w", v, err)
+		}
+		cfg.SkipHostChecks = b
 	}
 
 	return nil

@@ -3,7 +3,6 @@ package reexport
 import (
 	"go/ast"
 	"go/token"
-	"go/types"
 	"strings"
 
 	"golang.org/x/tools/go/analysis"
@@ -21,13 +20,6 @@ func run(pass *analysis.Pass) (interface{}, error) {
 	for _, file := range pass.Files {
 		for _, decl := range file.Decls {
 			genDecl, ok := decl.(*ast.GenDecl)
-			if !ok || genDecl.Tok != token.IMPORT {
-				continue
-			}
-		}
-
-		for _, decl := range file.Decls {
-			genDecl, ok := decl.(*ast.GenDecl)
 			if !ok || genDecl.Tok != token.TYPE {
 				continue
 			}
@@ -38,26 +30,28 @@ func run(pass *analysis.Pass) (interface{}, error) {
 					continue
 				}
 
-				obj := pass.TypesInfo.ObjectOf(ts.Name)
-				if obj == nil {
+				if !ts.Assign.IsValid() {
 					continue
 				}
 
-				named, ok := obj.Type().(*types.Named)
+				sel, ok := ts.Type.(*ast.SelectorExpr)
 				if !ok {
 					continue
 				}
 
-				objPkg := named.Obj().Pkg()
+				obj, ok := pass.TypesInfo.Uses[sel.Sel]
+				if !ok || obj == nil {
+					continue
+				}
+
+				objPkg := obj.Pkg()
 				if objPkg == nil {
 					continue
 				}
 
 				objPkgPath := objPkg.Path()
-				curPkgPath := pass.Pkg.Path()
-
-				if objPkgPath != curPkgPath && isModulePackage(objPkgPath) {
-					pass.Reportf(ts.Pos(), "R19: %q re-exports type %q from %q — see docs/ARCHITECTURE.md#R19", curPkgPath, ts.Name.Name, objPkgPath)
+				if objPkgPath != pass.Pkg.Path() && isModulePackage(objPkgPath) {
+					pass.Reportf(ts.Pos(), "R19: %q aliases type %q from %q — see docs/ARCHITECTURE.md#R19", pass.Pkg.Path(), ts.Name.Name, objPkgPath)
 				}
 			}
 		}

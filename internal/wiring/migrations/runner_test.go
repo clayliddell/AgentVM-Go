@@ -212,6 +212,21 @@ func TestRunner_DownMigration(t *testing.T) {
 	assert.Contains(t, tables, "wiring_routes")
 }
 
+func TestRunner_DownMigration_RejectsNonLatestVersion(t *testing.T) {
+	db := setupTestDB(t)
+
+	runner, err := NewRunner(db, AllMigrations(), testLogger)
+	require.NoError(t, err)
+	require.NoError(t, runner.Run())
+
+	err = runner.RunDown(1)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "not the latest applied migration")
+
+	versions := getAppliedVersions(t, db)
+	assert.Equal(t, []int{1, 2}, versions)
+}
+
 func TestRunner_DownMigration_NotFound(t *testing.T) {
 	db := setupTestDB(t)
 

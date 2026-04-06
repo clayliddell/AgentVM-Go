@@ -2,6 +2,7 @@ package circular
 
 import (
 	"go/ast"
+	"go/types"
 	"strings"
 
 	"golang.org/x/tools/go/analysis"
@@ -28,8 +29,9 @@ func run(pass *analysis.Pass) (interface{}, error) {
 	}
 
 	pkgPath := pass.Pkg.Path()
-	if strings.HasSuffix(pkgPath, ".test") {
-		return nil, nil
+	directImports := make(map[string]*types.Package)
+	for _, imp := range pass.Pkg.Imports() {
+		directImports[imp.Path()] = imp
 	}
 
 	seen := make(map[string]bool)
@@ -43,10 +45,32 @@ func run(pass *analysis.Pass) (interface{}, error) {
 		}
 		seen[path] = true
 
-		if strings.HasPrefix(path, pkgPath+".") || strings.HasPrefix(pkgPath, path+".") {
+		importedPkg := directImports[path]
+		if importedPkg != nil && importsReachTarget(importedPkg, pkgPath, map[string]bool{pkgPath: true}) {
 			pass.Reportf(imp.Pos(), "R8: potential circular dependency detected: %q imports %q — see docs/ARCHITECTURE.md#R8", pkgPath, path)
 		}
 	})
 
 	return nil, nil
+}
+
+func importsReachTarget(pkg *types.Package, target string, seen map[string]bool) bool {
+	if pkg == nil {
+		return false
+	}
+	if pkg.Path() == target {
+		return true
+	}
+	if seen[pkg.Path()] {
+		return false
+	}
+	seen[pkg.Path()] = true
+
+	for _, imp := range pkg.Imports() {
+		if importsReachTarget(imp, target, seen) {
+			return true
+		}
+	}
+
+	return false
 }

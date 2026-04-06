@@ -3,10 +3,10 @@ package mutablestate
 import (
 	"go/ast"
 	"go/token"
+	"path/filepath"
+	"strings"
 
 	"golang.org/x/tools/go/analysis"
-	"golang.org/x/tools/go/analysis/passes/inspect"
-	"golang.org/x/tools/go/ast/inspector"
 )
 
 const doc = "R9: flag package-level mutable state (top-level var declarations)"
@@ -15,37 +15,55 @@ var Analyzer = &analysis.Analyzer{
 	Name: "mutablestate",
 	Doc:  doc,
 	Run:  run,
-	Requires: []*analysis.Analyzer{
-		inspect.Analyzer,
-	},
 }
 
 func run(pass *analysis.Pass) (interface{}, error) {
-	inspect := pass.ResultOf[inspect.Analyzer].(*inspector.Inspector)
-
-	nodeFilter := []ast.Node{
-		(*ast.GenDecl)(nil),
+	if !strings.Contains(pass.Pkg.Path(), "internal/") {
+		return nil, nil
 	}
 
-	inspect.Preorder(nodeFilter, func(n ast.Node) {
-		decl := n.(*ast.GenDecl)
-		if decl.Tok != token.VAR {
-			return
+	for _, file := range pass.Files {
+		filename := pass.Fset.Position(file.Pos()).Filename
+		if !strings.Contains(filename, "/internal/") {
+			continue
+		}
+		if strings.HasSuffix(filepath.Base(filename), "_test.go") {
+			continue
 		}
 
-		for _, spec := range decl.Specs {
-			vs, ok := spec.(*ast.ValueSpec)
-			if !ok {
+		for _, decl := range file.Decls {
+			genDecl, ok := decl.(*ast.GenDecl)
+			if !ok || genDecl.Tok != token.VAR {
 				continue
 			}
 
-			for _, name := range vs.Names {
-				if name.IsExported() && name.Name != "Analyzer" {
+			for _, spec := range genDecl.Specs {
+				vs, ok := spec.(*ast.ValueSpec)
+				if !ok {
+					continue
+				}
+				if isEmbeddedFS(vs) {
+					continue
+				}
+
+				for _, name := range vs.Names {
+					if name.Name == "Analyzer" || strings.HasPrefix(name.Name, "err") {
+						continue
+					}
 					pass.Reportf(name.Pos(), "R9: package-level mutable state %q is banned — see docs/ARCHITECTURE.md#R9", name.Name)
 				}
 			}
 		}
-	})
+	}
 
 	return nil, nil
+}
+
+func isEmbeddedFS(vs *ast.ValueSpec) bool {
+	sel, ok := vs.Type.(*ast.SelectorExpr)
+	if !ok {
+		return false
+	}
+	pkg, ok := sel.X.(*ast.Ident)
+	return ok && pkg.Name == "embed" && sel.Sel.Name == "FS"
 }

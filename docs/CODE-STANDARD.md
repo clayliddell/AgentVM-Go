@@ -9,7 +9,7 @@
 | go test | built-in | Unit + integration + E2E tests |
 | gosec | latest | Security scanning |
 | govulncheck | latest | Vulnerability scanning |
-| go-mutesting | latest | Mutation testing |
+| gremlins | latest | Mutation testing |
 
 ## 2. Linting & Formatting
 
@@ -74,7 +74,7 @@ golangci-lint run ./...
 **Mutation Tests:**
 - Run on all unit-tested code.
 - Target: 90% mutation score (killed / (killed + survived)).
-- Run: `go-mutesting ./...`
+- Run: `gremlins unleash`
 - Surviving mutants must be documented as intentional or fixed.
 
 **Integration Tests:**
@@ -138,7 +138,7 @@ docs/adr/NNNN-short-title.md
 ```
 1. Lint          → golangci-lint + custom analyzers (R1, R2, R3, R5, R6, R8, R9, R10, R11, R12, R15, R18, R19)
 2. Unit Tests    → go test -coverprofile, fail under 95%
-3. Mutation      → go-mutesting, fail under 90%
+3. Mutation      → gremlins, fail under 90%
 4. Integration   → go test -tags=integration
 5. Security      → gosec, govulncheck
 6. Budgets       → file size (R5), file count (R6), directory depth (R7)

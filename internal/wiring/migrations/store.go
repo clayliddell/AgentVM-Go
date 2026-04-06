@@ -59,7 +59,7 @@ func NewRunner(db *sql.DB, migrations []*Migration, logger Logger) (*Runner, err
 
 	return &Runner{
 		db:         db,
-		migrations: migrations,
+		migrations: append([]*Migration(nil), migrations...),
 		logger:     logger,
 	}, nil
 }
@@ -188,6 +188,17 @@ func (r *Runner) RunDown(version int) error {
 		return fmt.Errorf("migration %d (%s) has no down SQL", version, target.Name)
 	}
 
+	applied, err := r.GetAppliedVersions()
+	if err != nil {
+		return err
+	}
+	if len(applied) == 0 {
+		return fmt.Errorf("migration %d (%s) has not been applied", version, target.Name)
+	}
+	if applied[len(applied)-1] != version {
+		return fmt.Errorf("migration %d (%s) is not the latest applied migration", version, target.Name)
+	}
+
 	tx, err := r.db.Begin()
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
@@ -235,7 +246,9 @@ func splitStatements(sql string) []string {
 			inDoubleQuote = !inDoubleQuote
 			current.WriteRune(ch)
 		case ch == ';' && !inSingleQuote && !inDoubleQuote:
-			stmts = append(stmts, current.String())
+			if stmt := strings.TrimSpace(current.String()); stmt != "" {
+				stmts = append(stmts, stmt)
+			}
 			current.Reset()
 		default:
 			current.WriteRune(ch)
